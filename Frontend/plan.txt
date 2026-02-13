@@ -1,0 +1,203 @@
+Product Requirements Document (PRD)
+Project: CodeSage – Context-Aware Code Review Platform
+Module: Frontend Application (v1.0)
+Date: February 2025
+Status: Draft
+1. Executive Summary
+CodeSage Frontend is a high-performance, developer-centric web application designed to deliver intelligent code review experiences. The interface bridges traditional IDE familiarity with modern collaborative tools, integrating AI-driven insights (via backend ML services) while maintaining sub-100ms interaction latency. The design philosophy prioritizes "flow state preservation"—minimizing context switching for developers reviewing code.
+2. Product Goals & Success Metrics
+2.1 Primary Goals
+Cognitive Load Reduction: Reduce time-to-comprehension for PR diffs by 40% compared to native GitHub/GitLab interfaces
+AI Transparency: Make ML model decisions interpretable through visual "confidence layers" without cluttering the code view
+Developer Ergonomics: Support power-user workflows (keyboard-driven navigation, command palettes) while maintaining accessibility for junior developers
+2.2 Success Metrics
+Performance: First Contentful Paint < 1.5s, Time to Interactive < 3s (on standard corporate hardware)
+Adoption: 80% of daily active users utilize keyboard shortcuts; 60% interact with AI explanation panels
+Error Rate: < 0.1% frontend crash rate; zero XSS vulnerabilities in security audits
+3. User Personas & Use Cases
+3.1 Primary Persona: "Senior Engineer Alex"
+Context: Reviews 5-8 PRs daily across microservices
+Pain Points: Context switching between IDE and browser; noisy AI suggestions without justification
+Needs: Side-by-side diff with inline AI annotations; quick jump to definition; risk assessment at file-tree level
+3.2 Secondary Persona: "Security Researcher Sam"
+Context: Audits code for vulnerabilities in compliance-heavy environments
+Needs: AST visualization; data flow tracing; audit trail of AI decisions for regulatory documentation
+4. Technical Architecture & Stack
+4.1 Core Stack
+Framework: Next.js 14 (App Router) with TypeScript 5.3+
+State Management: Zustand (global UI state) + TanStack Query (server state) + Valtio (real-time collaboration state)
+Styling: Tailwind CSS 3.4 + CSS Variables for theming; Radix UI primitives for accessibility
+Code Editor: Monaco Editor (VS Code core) with custom language providers
+Visualization: D3.js (for risk heatmaps) + ReactFlow (for dependency graphs)
+Real-time: Socket.io-client with automatic fallback to Server-Sent Events (SSE)
+4.2 Integration Points
+Table
+Copy
+Component	Backend Interface	Protocol
+Code Analysis	FastAPI (Python)	REST + WebSocket
+Async Job Status	Redis Streams (via backend proxy)	SSE
+ML Explanations	Go Microservice	gRPC-Web
+Auth/Permissions	PostgreSQL via REST	JWT (RS256)
+5. Detailed Feature Specifications
+5.1 Core Layout: "The Command Center"
+Layout Architecture
+Three-Zone Flexbox Layout:
+Zone A (Left Sidebar): Dynamic width (250px-400px), collapsible. File tree with risk indicators.
+Zone B (Center Stage): Fluid width. Monaco Editor instances with custom gutter decorations.
+Zone C (Right Intelligence Panel): Fixed 380px width (collapsible to 60px icons). AI insights, review timeline, chat.
+Adaptive Density
+Implement "Focus Modes":
+Review Mode: Minimal UI, line numbers + code only, AI indicators as subtle underlines
+Analysis Mode: Full Zone C expanded, AST viewer, dependency graphs visible
+Presentation Mode: Optimized for screen sharing, enlarged fonts, simplified toolbars
+5.2 File Tree Navigator (Zone A)
+Risk-Weighted Visualization
+Heatmap Integration: File icons tinted based on ML risk score (0-100):
+0-30: Default color
+31-70: Amber warning badge with count of suspicious patterns
+71-100: Red pulse animation + mandatory expand of risk details
+Smart Grouping: Auto-group files by "Change Type" (Logic Change vs. Config vs. Dependency) using backend classification
+Keyboard Navigation: Vim-style j/k navigation; / to filter; Enter to open; Space to preview (peek view without switching main editor)
+Security Features
+Path Traversal Protection: Sanitize all file paths displayed in tree (prevent ../../../etc/passwd display attacks)
+Content Security Policy: Disable inline script execution in file preview panes
+5.3 Code Editor Core (Zone B)
+Monaco Customizations
+Custom Gutter Decorations:
+AI Indicators: Small neural network icon (🧠) in gutter for lines with ML suggestions; hover reveals confidence percentage
+Risk Heatbars: Vertical gradient bars in gutter showing "complexity density" (cyclomatic complexity visualization)
+Inline Chat: GitHub Copilot-style inline threads, but for reviewer comments. Positioned absolutely next to relevant code lines.
+Semantic Zoom: Ctrl+Scroll to zoom out to "architecture view" (collapses functions to blocks, shows only AI-flagged sections)
+Diff Engine Enhancements
+Three-Way Merge View: Original | Base | Suggested (when AI auto-fix available)
+Syntax-Aware Diffing: Ignore whitespace changes in Python indentation; highlight semantic moves (function relocated vs. changed)
+Cross-Reference Peek: Alt+Click on function call shows definition in inline peek view (powered by backend AST analysis), preventing context switch to IDE
+5.4 Intelligence Panel (Zone C)
+ML Explainability Dashboard
+Confidence Spectrum: Horizontal bar chart showing:
+Model confidence (0-100%)
+Data source icons (Static Analysis vs. Neural vs. Historical Pattern)
+Novelty: "Similarity to Training Set" indicator (is this a pattern the ML has seen before?)
+Attention Heatmap Overlay: Toggle to highlight which tokens/keywords influenced the ML decision (using attention weights from backend)
+Counterfactual Explanations: "If this variable were const instead of let, risk score would drop by 15%" (natural language generated by backend, visualized as interactive toggles)
+Review Timeline
+Chronological Visualization: D3.js-based Gantt chart showing:
+PR creation → First AI scan → Human comments → AI re-scan (if code changed) → Approval
+Security: All timestamps cryptographically signed by backend; frontend verifies signature before display (prevent timeline tampering)
+Collaborative Workspace
+Presence Indicators: Avatars floating near cursor positions of other reviewers (operational transform via CRDTs)
+Voice Notes: WebRTC integration for async voice comments (encrypted E2E), transcribed by backend ASR service
+5.5 Command Palette & Shortcuts
+Universal Command Palette (Cmd+K)
+Contextual Intelligence: Different commands available based on current file type and AI-detected patterns
+Natural Language Search: "Show me security risks in auth modules" → filters file tree + opens relevant AI panels
+Shortcut Customization: Vim/VS Code/IntelliJ keymap presets
+Security Shortcut Enforcement
+Dangerous Operations: Delete comments, dismiss AI warnings require Hold-to-Confirm (hold Enter for 2 seconds) to prevent accidental triggers
+6. UI/UX Design System
+6.1 Visual Language: "Dark Matter"
+Color Philosophy
+Base Theme: Deep space gray (#0F172A) background (reduces eye strain during long review sessions)
+Semantic Colors:
+AI Accent: Electric violet (#8B5CF6) for all ML-generated content (consistent visual cue for artificial vs. human input)
+Risk Gradient: Cool blues (safe) → Warm oranges (caution) → Red alerts (critical), following cognitive perception patterns
+Syntax Highlighting: Custom TextMate theme matching GitHub Dark Dimmed but with enhanced contrast for accessibility (WCAG AAA compliance)
+Typography
+Code: JetBrains Mono (ligatures enabled) or Fira Code (user preference)
+UI Inter: San Francisco/Inter for interface elements; strict 4px baseline grid
+Hierarchy:
+File names: 14px/600 weight
+Code: 13px/400 weight
+AI annotations: 12px/500 weight with subtle italic
+6.2 Motion & Micro-interactions
+Purposeful Animation
+Diff Loading: Skeleton screens mimic code structure; actual content fades in with 200ms ease-out (prevents layout shift)
+AI Suggestions: "Gentle slide" from right (translateX 20px → 0) with opacity fade, suggesting "assistant entering" without intrusion
+Risk Updates: If backend pushes new ML analysis via WebSocket, affected files in tree perform a subtle "heartbeat" scale (1.0 → 1.05 → 1.0) to indicate fresh data
+Developer-Centric Feedback
+Haptic Feedback: For supported devices (trackpads), subtle vibration when hovering over high-risk code sections
+Sound Design: Optional audio cues for:
+Successful AI analysis completion (soft chime)
+Critical vulnerability detection (low-frequency alert)
+All muted by default (respecting developer preference for silence)
+6.3 Responsive Considerations
+Minimum Viewport: 1280×720 (targeting professional developers with external monitors)
+Touch Support: Limited; primary input is mouse/keyboard. Touch gestures only for tablet-based code review (pinch to zoom in diff view)
+7. Security & Compliance Requirements
+7.1 Code Display Security
+XSS Prevention:
+All code content rendered via Monaco's virtual DOM (escapes HTML entities)
+Custom decorators sanitized using DOMPurify before injection
+Content Security Policy: script-src 'self'; object-src 'none'; base-uri 'none';
+Path Injection Defense:
+File tree paths validated against whitelist regex (^[a-zA-Z0-9_\-\/\.]+$) before DOM insertion
+Null bytes and escape sequences stripped at input boundary
+7.2 Authentication & Authorization
+Token Management:
+JWT stored in httpOnly, Secure, SameSite=Strict cookies (never localStorage)
+Refresh token rotation on every API call
+Automatic logout on 401 with secure session cleanup
+Permission UI Enforcement:
+UI components query centralized permission hook (usePermission(repoId, action)) before rendering destructive actions
+Defense in Depth: Backend validates all permissions regardless of UI state, but UI prevents unnecessary API calls
+7.3 Data Privacy
+PII Masking: If code contains potential secrets (detected by regex patterns), UI renders them as •••••• with "Reveal" button requiring explicit user consent (logged for audit)
+Screen Sharing Protection: Optional "Privacy Mode" toggle that blurs all code except the specific function being discussed (for video calls)
+7.4 Supply Chain Security
+Dependency Scanning: Automated SBOM generation for frontend dependencies; block build if high-risk npm packages detected (via audit-ci)
+Subresource Integrity: All CDN resources (if any) include SRI hashes; prefer bundled assets
+8. Integration Specifications
+8.1 Backend API Contracts
+Analysis Job Flow
+Frontend: POST /api/v1/analyze with PR metadata → receives Job ID
+Polling Strategy: Exponential backoff polling (1s, 2s, 4s... max 30s) switching to WebSocket updates for "Processing" → "Completed" transitions
+Result Rendering: Stream parsing via NDJSON (Newline Delimited JSON) for progressive rendering of large analysis results
+ML Explanation Streaming
+Protocol: gRPC-Web for bidirectional streaming (explanation generation can be multi-turn)
+Fallback: HTTP/2 Server-Sent Events for corporate proxies blocking gRPC
+Cancellation: AbortController signals sent to backend if user navigates away from specific code line (save compute resources)
+8.2 State Synchronization
+Optimistic UI: Comment posting, AI suggestion dismissals update UI immediately; rollback on 4xx/5xx with toast notification
+Conflict Resolution: If two reviewers edit simultaneously, merge strategy: last-write-wins for comments, server-side reconciliation for approvals
+8.3 ML Model Interface
+Model Versioning: Frontend displays model_version hash from backend; cache AI explanations keyed to (file_hash + model_version) to prevent stale insights
+A/B Testing Support: Feature flags from backend control which UI components render (e.g., "New AST Viewer v2" rollout to 10% of users)
+9. Non-Functional Requirements
+9.1 Performance
+Bundle Optimization:
+Monaco Editor loaded via @monaco-editor/loader with CDN fallback; split chunks by language support (only load Python/JS parsers when needed)
+Dynamic imports for D3/ReactFlow (only load when user opens "Analysis Mode")
+Target: Initial bundle < 200KB gzipped; lazy-loaded chunks < 500KB each
+Memory Management:
+Dispose Monaco editor models when files closed (prevent memory leaks in long-running sessions)
+Virtual scrolling for file trees > 1000 files
+9.2 Accessibility (a11y)
+Screen Reader Support:
+AI suggestions announced as "Alert" role with descriptive text ("High confidence security warning: SQL injection possible")
+Monaco Editor configured with accessibilitySupport: 'on'
+Keyboard Navigation: All features accessible without mouse; visible focus indicators; skip links for main content areas
+9.3 Browser Support
+Primary: Chrome 120+, Edge 120+, Firefox 121+ (last 2 versions)
+Degraded Experience: Safari (limited WebSocket reconnection logic); no support for IE11
+Mobile: Read-only mode for iOS/Android tablets; no editing functionality (security precaution)
+10. Implementation Roadmap
+Phase 1: Foundation (Weeks 1-3)
+Monaco Editor integration with basic diff view
+File tree with static risk colors
+Authentication flow and route protection
+Phase 2: Intelligence Layer (Weeks 4-6)
+AI suggestion rendering in editor gutters
+Intelligence Panel with static ML explanations
+Real-time WebSocket integration for job status
+Phase 3: Advanced Features (Weeks 7-9)
+AST visualization viewer
+Command palette with natural language search
+Accessibility audit and keyboard shortcut completion
+Phase 4: Polish & Security (Weeks 10-12)
+Security hardening (CSP, XSS testing, penetration testing)
+Performance optimization (bundle splitting, lazy loading)
+Responsive design refinement and cross-browser testing
+11. Open Questions & Risks
+Browser Storage: Should we implement local caching of analyzed code (IndexedDB) for offline review? Risk: storing proprietary code in browser storage.
+ML Latency: If backend ML inference takes >5s, do we show partial results or loading skeletons? How to handle timeout gracefully?
+Monaco Customization: Extent of custom language server protocol (LSP) integration in browser vs. delegating to backend.
