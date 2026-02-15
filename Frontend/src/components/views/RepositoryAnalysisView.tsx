@@ -93,8 +93,8 @@ export default function RepositoryAnalysisView() {
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-start relative px-10">
-            <div className="w-full max-w-[1400px] space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pt-16 pb-24">
+        <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-start relative px-6 md:px-10">
+            <div className="w-full max-w-[1400px] space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pt-12 md:pt-16 pb-24">
 
                 <div className="flex items-center justify-between">
                     <button

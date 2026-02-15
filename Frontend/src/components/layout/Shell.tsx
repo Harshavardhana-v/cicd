@@ -47,32 +47,73 @@ export default function Shell({ zoneA, zoneB, zoneC }: ShellProps) {
 
             {/* Zone B: Editor Stage */}
             <main className="flex-1 flex flex-col min-w-0 bg-background/50 relative">
-                <div className="flex h-20 items-center px-10 border-b border-white/5 bg-sidebar/10 backdrop-blur-md justify-between">
-                    <div className="flex items-center gap-6">
-                        <button
-                            onClick={() => setView('selection')}
-                            className="p-2 hover:bg-white/5 rounded-lg transition-colors opacity-40 hover:opacity-100"
-                        >
-                            <ChevronLeft className="w-5 h-5" />
-                        </button>
-                        <div className="h-6 w-[1px] bg-white/10" />
+                <div className="h-24 px-8 border-b border-white/5 bg-sidebar/10 backdrop-blur-md grid grid-cols-3 items-center relative z-50">
+                    {/* Left: Repo Context */}
+                    <div className="flex items-center justify-start gap-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-2 h-2 rounded-full bg-ai-accent animate-pulse shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
-                            <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-ai-accent animate-pulse shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+                            <div className="flex flex-col">
                                 {repoOwner && (
-                                    <>
-                                        <span className="text-xs font-bold opacity-30 uppercase tracking-widest">{repoOwner}</span>
-                                        <span className="text-xs opacity-20">/</span>
-                                    </>
+                                    <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest leading-none mb-1">{repoOwner}</span>
                                 )}
-                                <span className="text-xs text-foreground uppercase tracking-[0.3em] font-black">
+                                <span className="text-sm text-foreground uppercase tracking-[0.2em] font-black leading-none">
                                     {selectedRepo || "Local Session"}
                                 </span>
                             </div>
                         </div>
+
+                        {selectedRepo && (
+                            <>
+                                <div className="h-8 w-[1px] bg-white/5" />
+                                <div className="flex items-center gap-6">
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-30 leading-tight">Active PRs</span>
+                                        <span className="text-xs font-black italic text-ai-accent">{useUIStore.getState().prsCount}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-30 leading-tight">Issues</span>
+                                        <span className="text-xs font-black italic text-risk-warning">{useUIStore.getState().issuesCount}</span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
-                    <div className="flex items-center gap-4">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-[0.1em] font-black opacity-30">code-sage.v2.4.0</span>
+
+                    {/* Center: Focus Mode Switcher */}
+                    <div className="flex items-center justify-center">
+                        <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-full border border-white/5 shadow-2xl backdrop-blur-xl">
+                            <button
+                                onClick={() => useUIStore.getState().setFocusMode('review')}
+                                className={cn(
+                                    "px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300",
+                                    useUIStore.getState().focusMode === 'review'
+                                        ? "bg-foreground text-background shadow-lg scale-105"
+                                        : "hover:bg-white/5 opacity-40 hover:opacity-100"
+                                )}
+                            >
+                                Review
+                            </button>
+                            <button
+                                onClick={() => useUIStore.getState().setFocusMode('analysis')}
+                                className={cn(
+                                    "px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300",
+                                    useUIStore.getState().focusMode === 'analysis'
+                                        ? "bg-ai-accent text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] scale-105"
+                                        : "hover:bg-white/5 opacity-40 hover:opacity-100"
+                                )}
+                            >
+                                Analysis
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Right: Version & Meta */}
+                    <div className="flex items-center justify-end gap-6">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span className="text-[9px] font-medium opacity-50 uppercase tracking-wider">System Online</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-[0.1em] font-black opacity-20">code-sage.v2.4.6</span>
                     </div>
                 </div>
                 <div className="flex-1 overflow-hidden">

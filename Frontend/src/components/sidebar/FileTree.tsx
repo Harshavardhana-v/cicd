@@ -3,7 +3,7 @@
 import React from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { FileCode, Folder, ChevronRight, ChevronDown, ShieldAlert, Loader2 } from 'lucide-react';
+import { FileCode, Folder, ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
 import { useUIStore } from '@/store/useStore';
 
 function cn(...inputs: ClassValue[]) {
@@ -18,6 +18,86 @@ interface FileNode {
     risk?: number; // 0-100
     status?: 'modified' | 'added' | 'deleted' | 'unchanged';
 }
+
+interface FileTreeNodeProps {
+    node: FileNode;
+    depth?: number;
+    activeFile: string | null;
+    handleFileClick: (path: string) => void;
+}
+
+const RiskBadge = ({ risk }: { risk: number }) => {
+    if (risk < 30) return null;
+    return (
+        <span className={cn(
+            "text-[9px] font-black px-1.5 py-0.5 rounded-md border",
+            risk > 70 ? "bg-risk-critical/10 text-risk-critical border-risk-critical/20 animate-pulse" : "bg-risk-warning/10 text-risk-warning border-risk-warning/20"
+        )}>
+            {risk}%
+        </span>
+    );
+};
+
+const FileTreeNode = ({ node, depth = 0, activeFile, handleFileClick }: FileTreeNodeProps) => {
+    const isFolder = node.type === 'folder';
+    const isActive = activeFile === node.path;
+    const [isOpen, setIsOpen] = React.useState(depth < 1);
+
+    // Simulate risk for demo if not provided
+    const risk = node.risk || (node.name.includes('auth') ? 85 : node.name.includes('service') ? 45 : 0);
+
+    return (
+        <div className="select-none py-0.5">
+            <div
+                onClick={() => isFolder ? setIsOpen(!isOpen) : handleFileClick(node.path)}
+                className={cn(
+                    "flex items-center gap-2.5 py-2 px-4 hover:bg-white/5 cursor-pointer text-sm group transition-all rounded-xl mx-2",
+                    isActive ? "bg-ai-accent/10 text-ai-accent shadow-[inset_0_0_20px_rgba(139,92,246,0.05)]" : "text-foreground/50"
+                )}
+                style={{ paddingLeft: `${depth * 1.2 + 1}rem` }}
+            >
+                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    {isFolder ? (
+                        <div className="flex items-center gap-1.5">
+                            {isOpen ? <ChevronDown className="w-4 h-4 opacity-30" /> : <ChevronRight className="w-4 h-4 opacity-30" />}
+                            <Folder className={cn(
+                                "w-4 h-4 transition-colors",
+                                isOpen ? "text-ai-accent" : risk > 70 ? "text-risk-critical" : risk > 30 ? "text-risk-warning" : "text-blue-400/60"
+                            )} />
+                        </div>
+                    ) : (
+                        <FileCode className={cn(
+                            "w-4 h-4 ml-5 transition-colors",
+                            isActive ? "text-ai-accent" : risk > 70 ? "text-risk-critical shadow-[0_0_8px_rgba(239,68,68,0.4)]" : risk > 30 ? "text-risk-warning" : "text-foreground/30"
+                        )} />
+                    )}
+
+                    <span className={cn(
+                        "truncate font-semibold tracking-tight",
+                        isActive && "font-black",
+                        risk > 70 && !isActive && "text-risk-critical/80"
+                    )}>
+                        {node.name}
+                    </span>
+                </div>
+                <RiskBadge risk={risk} />
+            </div>
+            {isFolder && isOpen && node.children && (
+                <div className="mt-0.5">
+                    {node.children.map(child => (
+                        <FileTreeNode
+                            key={child.path}
+                            node={child}
+                            depth={depth + 1}
+                            activeFile={activeFile}
+                            handleFileClick={handleFileClick}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function FileTree() {
     const {
@@ -114,52 +194,17 @@ export default function FileTree() {
         }
     };
 
-    const renderNode = (node: FileNode, depth = 0) => {
-        const isFolder = node.type === 'folder';
-        const isActive = activeFile === node.path;
-        const [isOpen, setIsOpen] = React.useState(depth < 1); // Expand first level by default
-
-        return (
-            <div key={node.path} className="select-none py-0.5">
-                <div
-                    onClick={() => isFolder ? setIsOpen(!isOpen) : handleFileClick(node.path)}
-                    className={cn(
-                        "flex items-center gap-2.5 py-2 px-4 hover:bg-white/5 cursor-pointer text-sm group transition-all rounded-xl mx-2",
-                        isActive ? "bg-ai-accent/10 text-ai-accent shadow-[inset_0_0_20px_rgba(139,92,246,0.05)]" : "text-foreground/50"
-                    )}
-                    style={{ paddingLeft: `${depth * 1.2 + 1}rem` }}
-                >
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                        {isFolder ? (
-                            <div className="flex items-center gap-1.5">
-                                {isOpen ? <ChevronDown className="w-4 h-4 opacity-30" /> : <ChevronRight className="w-4 h-4 opacity-30" />}
-                                <Folder className={cn("w-4 h-4", isOpen ? "text-ai-accent" : "text-blue-400/60")} />
-                            </div>
-                        ) : (
-                            <FileCode className={cn("w-4 h-4 ml-5", isActive ? "text-ai-accent" : "text-foreground/30")} />
-                        )}
-
-                        <span className={cn(
-                            "truncate font-semibold tracking-tight",
-                            isActive && "font-black"
-                        )}>
-                            {node.name}
-                        </span>
-                    </div>
-                </div>
-                {isFolder && isOpen && node.children && (
-                    <div className="mt-0.5">
-                        {node.children.map(child => renderNode(child, depth + 1))}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     return (
         <div className="py-2 space-y-0.5">
             {treeData.length > 0 ? (
-                treeData.map(node => renderNode(node))
+                treeData.map(node => (
+                    <FileTreeNode
+                        key={node.path}
+                        node={node}
+                        activeFile={activeFile}
+                        handleFileClick={handleFileClick}
+                    />
+                ))
             ) : (
                 <div className="px-8 py-10 text-center space-y-4 opacity-30">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto" />

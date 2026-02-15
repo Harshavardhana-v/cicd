@@ -30,6 +30,8 @@ interface UIState {
     toggleZoneA: () => void;
     isZoneCExpanded: boolean;
     toggleZoneC: () => void;
+    focusMode: 'review' | 'analysis';
+    setFocusMode: (mode: 'review' | 'analysis') => void;
     currentSuggestions: any[];
     setSuggestions: (suggestions: any[]) => void;
 }
@@ -66,6 +68,11 @@ export const useUIStore = create<UIState>((set) => ({
     toggleZoneA: () => set((state) => ({ isZoneAExpanded: !state.isZoneAExpanded })),
     isZoneCExpanded: true,
     toggleZoneC: () => set((state) => ({ isZoneCExpanded: !state.isZoneCExpanded })),
+    focusMode: 'analysis',
+    setFocusMode: (mode) => set({
+        focusMode: mode,
+        isZoneCExpanded: mode === 'analysis'
+    }),
     currentSuggestions: [],
     setSuggestions: (suggestions) => set({ currentSuggestions: suggestions }),
 }));

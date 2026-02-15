@@ -3,6 +3,7 @@ export interface AISuggestion {
     line: number;
     type: 'security' | 'optimization' | 'best-practice';
     message: string;
+    hint: string;
     confidence: number;
     fix?: string;
 }
@@ -10,33 +11,31 @@ export interface AISuggestion {
 const SECURITY_PATTERNS = [
     {
         regex: /(?:\bPASSWORD\b|\bSECRET_KEY\b|\bAPI_KEY\b)\s*=\s*["']([^"']+)["']/gi,
-        message: "Hardcoded credentials detected. Secrets should be stored in environment variables.",
+        message: "Hardcoded credentials detected.",
+        hint: "Secrets should be stored in environment variables (e.g., .env) to prevent accidental exposure.",
         confidence: 0.98,
         fix: "Move secret to .env file and use process.env or os.environ."
     },
     {
         regex: /f"SELECT\s+.*\s+WHERE\s+.*\{.*\}"/gi,
-        message: "Potential SQL Injection via f-string concatenation in query.",
+        message: "Potential SQL Injection.",
+        hint: "Concatenating user input into SQL strings is dangerous. Use parameterized queries instead.",
         confidence: 0.95,
         fix: "Use parameterized queries (e.g., cursor.execute('SELECT... WHERE x=?', (val,)))."
     },
     {
         regex: /import\s+pickle/g,
-        message: "Insecure deserialization library 'pickle' imported.",
+        message: "Insecure deserialization library.",
+        hint: "The 'pickle' module is not secure. Use JSON or another safe format for untrusted data.",
         confidence: 0.85,
         fix: "Use safer formats like JSON for untrusted data."
     },
     {
         regex: /pickle\.load\(/g,
-        message: "Dangerous use of 'pickle.load' on potentially untrusted input.",
+        message: "Dangerous use of 'pickle.load'.",
+        hint: "Strictly avoid unpickling data from external sources as it can lead to remote code execution.",
         confidence: 0.95,
-        fix: "Strictly avoid unpickling data from external sources."
-    },
-    {
-        regex: /cursor\.execute\(.*f["'].*\{.*\}["']\)/gi,
-        message: "Direct string formatting in SQL execution detected.",
-        confidence: 0.98,
-        fix: "Always use bind parameters to prevent SQL injection."
+        fix: "Use JSON.parse() or similar for structured data."
     }
 ];
 
@@ -62,6 +61,7 @@ export function analyzeCode(code: string, fileName: string): AISuggestion[] {
                 line: lineNo,
                 type: 'security',
                 message: pattern.message,
+                hint: pattern.hint,
                 confidence: pattern.confidence,
                 fix: pattern.fix
             });
@@ -77,7 +77,8 @@ export function analyzeCode(code: string, fileName: string): AISuggestion[] {
                         id: `opt-${i + 1}`,
                         line: i + 1,
                         type: 'optimization',
-                        message: "Consider memoizing this logic or component to prevent unnecessary re-renders.",
+                        message: "Redundant re-render risk.",
+                        hint: "This component logic seems complex and might cause performance issues. Consider using useMemo or useCallback.",
                         confidence: 0.7
                     });
                 }

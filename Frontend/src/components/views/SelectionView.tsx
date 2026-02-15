@@ -45,12 +45,12 @@ export default function SelectionView() {
                     <ChevronLeft className="w-4 h-4" /> Back to home
                 </button>
 
-                <div className="space-y-4 text-center md:text-left">
-                    <h2 className="text-5xl font-black tracking-tight leading-tight">Choose your <span className="text-ai-accent italic underline decoration-ai-accent/30 underline-offset-8">entry point</span>.</h2>
-                    <p className="text-xl text-muted-foreground font-medium">Kickstart your code intelligence session via direct input or profile sync.</p>
+                <div className="space-y-6 text-center">
+                    <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-tight">Choose your <span className="text-ai-accent italic underline decoration-ai-accent/30 underline-offset-8">entry point</span>.</h2>
+                    <p className="text-xl text-muted-foreground font-medium max-w-2xl mx-auto">Kickstart your code intelligence session via direct input or profile sync.</p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-16 items-stretch">
+                <div className="grid md:grid-cols-2 gap-12 items-stretch">
                     {/* Left: Direct Input */}
                     <div className="flex flex-col space-y-6">
                         <div className="relative group flex-1 flex flex-col">
@@ -87,14 +87,14 @@ export default function SelectionView() {
                     <div className="flex flex-col space-y-8">
                         <div
                             onClick={() => handleStartReview(SAMPLE_CODE)}
-                            className="p-10 rounded-[32px] bg-sidebar/30 border border-border border-dashed hover:border-ai-accent/50 hover:bg-ai-accent/5 transition-all cursor-pointer group flex flex-col justify-between min-h-[220px]"
+                            className="p-10 rounded-[32px] bg-sidebar/30 border border-border border-dashed hover:border-ai-accent/50 hover:bg-ai-accent/5 transition-all cursor-pointer group flex flex-col justify-between min-h-[240px]"
                         >
                             <div>
                                 <div className="flex items-center justify-between mb-6">
-                                    <div className="p-3 rounded-2xl bg-risk-safe/10 text-risk-safe border border-risk-safe/20 shadow-inner">
+                                    <div className="p-3 rounded-2xl bg-ai-accent/10 text-ai-accent border border-ai-accent/20 shadow-inner">
                                         <Sparkles className="w-6 h-6" />
                                     </div>
-                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] bg-risk-safe/10 text-risk-safe px-3 py-1.5 rounded-full border border-risk-safe/20">Explorer Mode</span>
+                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] bg-ai-accent/10 text-ai-accent px-3 py-1.5 rounded-full border border-ai-accent/20">Explorer Mode</span>
                                 </div>
                                 <h3 className="text-3xl font-black mb-3">Try Example Code</h3>
                                 <p className="text-lg text-muted-foreground font-medium italic opacity-70 leading-relaxed">"Quickly visualize how CodeSage flags vulnerabilities in real-world JavaScript snippets."</p>
@@ -106,7 +106,7 @@ export default function SelectionView() {
 
                         <div
                             onClick={() => setView('github')}
-                            className="p-10 rounded-[32px] bg-sidebar/50 border border-white/10 hover:border-ai-accent/50 hover:bg-ai-accent/5 transition-all cursor-pointer group flex flex-col justify-between min-h-[220px] shadow-xl"
+                            className="p-10 rounded-[32px] bg-sidebar/50 border border-white/10 hover:border-ai-accent/50 hover:bg-ai-accent/5 transition-all cursor-pointer group flex flex-col justify-between min-h-[240px] shadow-xl"
                         >
                             <div>
                                 <div className="flex items-center gap-4 mb-6">

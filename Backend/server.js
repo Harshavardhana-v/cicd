@@ -1,7 +1,7 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -76,7 +76,8 @@ app.post('/api/analysis/scan', async (req, res) => {
         vulnerabilities.push({
             type: 'Security',
             severity: 'High',
-            message: 'Outdated dependencies detected in package-lock.json'
+            message: 'Outdated dependencies detected.',
+            hint: 'The package-lock.json reflects versions with known vulnerabilities. Run `npm audit fix` to resolve.'
         });
     }
 

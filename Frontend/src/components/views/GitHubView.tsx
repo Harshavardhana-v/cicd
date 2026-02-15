@@ -91,7 +91,7 @@ export default function GitHubView() {
                     </div>
                 ) : (
                     <div className="space-y-12">
-                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10 border-b border-border/30 pb-12">
+                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 border-b border-border/30 pb-10">
                             <div className="flex items-center gap-8">
                                 <img
                                     src={`https://github.com/${githubProfile}.png`}
@@ -115,7 +115,7 @@ export default function GitHubView() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {repositories.map((repo) => (
                                 <div key={repo.name} className="glass rounded-[40px] p-10 space-y-10 hover:border-ai-accent/40 transition-all group relative overflow-hidden flex flex-col justify-between shadow-2xl">
                                     <div className="space-y-8">

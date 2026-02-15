@@ -43,7 +43,7 @@ export default function WelcomeView() {
                     <Sparkles className="w-4 h-4 ml-[-4px]" /> Intelligence v2.0
                 </div>
 
-                <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+                <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 mx-auto max-w-5xl">
                     Build better code <br />
                     with <span className="bg-gradient-to-r from-ai-accent via-indigo-400 to-ai-accent bg-[length:200%_auto] animate-gradient-mask bg-clip-text text-transparent italic">CodeSage</span>.
                 </h1>
@@ -53,10 +53,10 @@ export default function WelcomeView() {
                 </p>
 
                 {/* Action Button */}
-                <div className="pt-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
+                <div className="pt-10 flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
                     <button
                         onClick={() => setView('selection')}
-                        className="group relative px-10 py-5 bg-ai-accent hover:bg-ai-accent/90 text-white rounded-[24px] font-black text-lg transition-all hover:scale-105 hover:shadow-[0_20px_50px_rgba(139,92,246,0.5)] flex items-center gap-3 mx-auto border-t border-white/20 active:scale-95"
+                        className="group relative px-12 py-6 bg-ai-accent hover:bg-ai-accent/90 text-white rounded-[24px] font-black text-xl transition-all hover:scale-105 hover:shadow-[0_20px_50px_rgba(139,92,246,0.5)] flex items-center gap-4 border-t border-white/20 active:scale-95"
                     >
                         Get Started <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                     </button>
