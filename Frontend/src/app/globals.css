@@ -2,7 +2,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* Not an import but for clarity */
 
 @theme inline {
   --color-background: var(--background);
@@ -98,13 +97,13 @@ body {
 }
 
 /* Utility Animations */
-.animate-in {
+/* .animate-in {
   animation-duration: 0.6s;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   animation-fill-mode: forwards;
-}
+} */
 
-@keyframes fade-in {
+/* @keyframes fade-in {
   from {
     opacity: 0;
   }
@@ -112,13 +111,13 @@ body {
   to {
     opacity: 1;
   }
-}
+} */
 
-.fade-in {
+/* .fade-in {
   animation-name: fade-in;
-}
+} */
 
-@keyframes slide-in-from-bottom {
+/* @keyframes slide-in-from-bottom {
   from {
     transform: translateY(20px);
     opacity: 0;
@@ -128,8 +127,29 @@ body {
     transform: translateY(0);
     opacity: 1;
   }
+} */
+
+/* .slide-in-from-bottom-8 {
+  animation-name: slide-in-from-bottom;
+} */
+
+.privacy-overlay {
+  background: rgba(7, 9, 14, 0.1);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  z-index: 100;
+  pointer-events: none;
 }
 
-.slide-in-from-bottom-8 {
-  animation-name: slide-in-from-bottom;
+/* Monaco Performance Hard Reset - Kill all transitions */
+.monaco-editor,
+.monaco-editor .view-line,
+.monaco-editor .view-lines,
+.monaco-editor .lines-content,
+.monaco-editor .scroll-decoration,
+.monaco-editor span {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  backdrop-filter: none !important;
 }

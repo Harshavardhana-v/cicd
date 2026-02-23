@@ -1,44 +1,87 @@
 "use client";
 
-import React, { useEffect } from 'react';
-import { Brain, Zap, ShieldCheck, Clock, MessageSquare, Target, AlertTriangle, Lightbulb, Info, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Brain, Zap, ShieldCheck, Clock, MessageSquare, Target, AlertTriangle, Lightbulb, CheckCircle2, GitPullRequest, Copy, Check, Filter } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useUIStore } from '@/store/useStore';
 import { analyzeCode } from '@/services/analysisEngine';
 
+import DOMPurify from 'dompurify';
+import { IntelligencePanelSkeleton } from '../ui/Skeletons';
+import ReviewTimeline from './ReviewTimeline';
+
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
+type FilterType = 'all' | 'security' | 'optimization';
+
+const CODE_EXTENSIONS = ['.js', '.ts', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.cpp', '.c', '.php', '.rb', '.swift', '.kt'];
+
 export default function IntelligencePanel() {
-    const { activeFile, setSuggestions, currentSuggestions, codeToReview } = useUIStore();
+    const { activeFile, setSuggestions, currentSuggestions, codeToReview, selectedRepo, setView, setGraphData } = useUIStore();
+    const [filter, setFilter] = useState<FilterType>('all');
+    const [keyword, setKeyword] = useState('');
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-    const CODE_EXTENSIONS = ['.js', '.ts', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.cpp', '.c', '.php', '.rb', '.swift', '.kt'];
-
+    // ── Run analysis engine ────────────────────────────────────────
     useEffect(() => {
         if (!activeFile) {
             setSuggestions([]);
+            setGraphData({ nodes: [], edges: [] });
             return;
         }
         const isCode = CODE_EXTENSIONS.some(ext => activeFile.toLowerCase().endsWith(ext));
         if (!isCode) {
-            // Non-code file (CSS, JSON, markdown, etc.) — clear any old suggestions
             setSuggestions([]);
+            setGraphData({ nodes: [], edges: [] });
             return;
         }
         if (codeToReview) {
-            const suggestions = analyzeCode(codeToReview, activeFile);
-            setSuggestions(suggestions);
+            setIsAnalyzing(true);
+            const timer = setTimeout(() => {
+                const { suggestions, graphData } = analyzeCode(codeToReview, activeFile);
+                setSuggestions(suggestions ?? []);
+                setGraphData(graphData ?? { nodes: [], edges: [] });
+                setIsAnalyzing(false);
+            }, 600);
+            return () => clearTimeout(timer);
         }
-    }, [codeToReview, activeFile, setSuggestions]);
+    }, [codeToReview, activeFile, setSuggestions, setGraphData]);
+
+    // ── Listen for CommandPalette filter events ────────────────────
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent).detail as FilterType;
+            setFilter(detail);
+        };
+        window.addEventListener('codesage:filter', handler);
+        return () => window.removeEventListener('codesage:filter', handler);
+    }, []);
+
+    // ── Copy fix to clipboard ─────────────────────────────────────
+    const copyFix = (id: string, fix: string) => {
+        navigator.clipboard.writeText(fix).then(() => {
+            setCopiedId(id);
+            setTimeout(() => setCopiedId(null), 2000);
+        });
+    };
+
+    // ── Filtered list ─────────────────────────────────────────────
+    const filtered = currentSuggestions
+        .filter(s => filter === 'all' || s.type === filter)
+        .filter(s => !keyword || s.message.toLowerCase().includes(keyword.toLowerCase()) || s.hint.toLowerCase().includes(keyword.toLowerCase()));
 
     const securityRisks = currentSuggestions.filter(s => s.type === 'security').length;
     const optimizations = currentSuggestions.filter(s => s.type === 'optimization').length;
 
+    if (isAnalyzing) return <IntelligencePanelSkeleton />;
+
     return (
         <div className="flex flex-col h-full bg-[#050a14]">
-            {/* Professional Meter Header */}
+            {/* System Health Header */}
             <div className="p-8 border-b border-white/5 space-y-8 bg-gradient-to-b from-white/[0.02] to-transparent">
                 <div className="flex items-center justify-between">
                     <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] opacity-40 flex items-center gap-3">
@@ -78,140 +121,181 @@ export default function IntelligencePanel() {
                 </div>
             </div>
 
-            {/* AI Suggestions List */}
-            <div className="p-8 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] opacity-40 flex items-center gap-3">
-                            <Brain className="w-4 h-4" /> Engine Insights
-                        </h3>
-                        {currentSuggestions.length > 0 && (
-                            <span className="text-[10px] font-black text-ai-accent bg-ai-accent/10 px-2 py-0.5 rounded-md border border-ai-accent/20">
-                                {currentSuggestions.length} DETECTED
-                            </span>
-                        )}
-                    </div>
+            {/* Engine Insights */}
+            <div className="p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
 
-                    {currentSuggestions.length === 0 ? (
-                        <div className="py-20 flex flex-col items-center justify-center text-center space-y-4 px-10 border-2 border-dashed border-white/5 rounded-[40px] bg-white/[0.01]">
-                            <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center border border-white/5 shadow-inner">
-                                <CheckCircle2 className="w-8 h-8 opacity-20" />
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm font-black uppercase tracking-widest opacity-30">All Modules Safe</p>
-                                <p className="text-xs text-muted-foreground opacity-40 font-medium leading-relaxed">No structural risks or optimization patterns found in the current buffer.</p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-5">
-                            {currentSuggestions.map((s) => (
-                                <div key={s.id} className={cn(
-                                    "p-6 rounded-[32px] border transition-all hover:bg-white/[0.03] group relative overflow-hidden",
-                                    s.type === 'security' ? "border-risk-critical/10" : "border-ai-accent/10"
-                                )}>
-                                    {/* Sidebar indicator */}
-                                    <div className={cn(
-                                        "absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r-full",
-                                        s.type === 'security' ? "bg-risk-critical" : "bg-ai-accent"
-                                    )} />
-
-                                    <div className="space-y-5">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className={cn(
-                                                    "p-2 rounded-xl",
-                                                    s.type === 'security' ? "bg-risk-critical/10 text-risk-critical" : "bg-ai-accent/10 text-ai-accent"
-                                                )}>
-                                                    {s.type === 'security' ? <ShieldCheck className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}
-                                                </div>
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Line {s.line}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-full border border-white/10">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-ai-accent animate-pulse" />
-                                                <span className="text-[9px] font-black text-ai-accent uppercase tracking-tighter">
-                                                    Match {Math.round(s.confidence * 100)}%
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <h4 className="text-base font-black tracking-tight leading-tight">{s.message}</h4>
-                                                <p className="text-xs text-muted-foreground font-medium leading-relaxed opacity-70">
-                                                    {s.hint}
-                                                </p>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest opacity-30">
-                                                    <span>Confidence Spectrum</span>
-                                                    <span>{Math.round(s.confidence * 100)}%</span>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
-                                                    <div
-                                                        className={cn(
-                                                            "h-full rounded-full transition-all duration-1000",
-                                                            s.type === 'security' ? "bg-risk-critical" : "bg-ai-accent"
-                                                        )}
-                                                        style={{ width: `${s.confidence * 100}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-2">
-                                                <div className="px-2 py-1 rounded-md bg-white/5 border border-white/10 flex items-center gap-1.5 grayscale hover:grayscale-0 transition-all cursor-default">
-                                                    <div className="w-1 h-1 rounded-full bg-ai-accent" />
-                                                    <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Novelty: High</span>
-                                                </div>
-                                                <div className="px-2 py-1 rounded-md bg-white/5 border border-white/10 flex items-center gap-1.5 grayscale hover:grayscale-0 transition-all cursor-default">
-                                                    <div className="w-1 h-1 rounded-full bg-ai-accent" />
-                                                    <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Attn: Weights-v3</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {s.fix && (
-                                            <div className="p-5 bg-[#0a0f1d] rounded-2xl border border-white/5 space-y-3 shadow-inner group-hover:border-ai-accent/30 transition-colors">
-                                                <div className="flex items-center gap-2 opacity-30">
-                                                    <Zap className="w-3 h-3 text-ai-accent" />
-                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">Architecture Fix</span>
-                                                </div>
-                                                <code className="block text-[11px] text-ai-accent/90 leading-relaxed font-mono whitespace-pre-wrap">
-                                                    {s.fix}
-                                                </code>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                {/* Header + Filter Tabs */}
+                <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] opacity-40 flex items-center gap-3">
+                        <Brain className="w-4 h-4" /> Engine Insights
+                    </h3>
+                    {currentSuggestions.length > 0 && (
+                        <span className="text-[10px] font-black text-ai-accent bg-ai-accent/10 px-2 py-0.5 rounded-md border border-ai-accent/20">
+                            {currentSuggestions.length} DETECTED
+                        </span>
                     )}
                 </div>
 
-                {/* Stream Footer */}
-                <div className="space-y-6 pt-10 border-t border-white/5">
-                    <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] opacity-40 flex items-center gap-3">
-                        <Clock className="w-4 h-4" /> Reality Stream
-                    </h3>
-                    <div className="relative pl-6 space-y-6">
-                        <div className="absolute left-[3px] top-1.5 bottom-4 w-[1px] bg-white/10" />
-                        {[
-                            { time: '12:28 AM', label: `Scanning Buffer: ${activeFile || 'Idle'}`, icon: <div className="w-1.5 h-1.5 rounded-full bg-white/20" /> },
-                            { time: '12:28 AM', label: 'Analysis Strategy: Context-Aware', icon: <div className="w-1.5 h-1.5 rounded-full bg-ai-accent shadow-[0_0_8px_rgba(139,92,246,0.6)]" /> },
-                        ].map((item, i) => (
-                            <div key={i} className="relative flex flex-col gap-1">
-                                <div className="absolute -left-[26px] top-1.5 flex items-center justify-center">
-                                    {item.icon}
+                {/* Filter Tabs */}
+                {currentSuggestions.length > 0 && (
+                    <div className="flex items-center gap-1 bg-black/30 p-1 rounded-xl border border-white/5">
+                        {(['all', 'security', 'optimization'] as FilterType[]).map(f => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={cn(
+                                    "flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+                                    filter === f
+                                        ? f === 'security' ? "bg-risk-critical/20 text-risk-critical"
+                                            : f === 'optimization' ? "bg-ai-accent/20 text-ai-accent"
+                                                : "bg-white/10 text-foreground"
+                                        : "opacity-30 hover:opacity-60"
+                                )}
+                            >
+                                {f === 'all' ? 'All' : f === 'security' ? '🔒 Security' : '⚡ Optim.'}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Keyword filter */}
+                {currentSuggestions.length > 0 && (
+                    <div className="relative">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 opacity-20" />
+                        <input
+                            type="text"
+                            value={keyword}
+                            onChange={e => setKeyword(e.target.value)}
+                            placeholder="Filter analysis results..."
+                            className="w-full bg-white/[0.02] border border-white/5 rounded-xl py-2.5 pl-8 pr-4 text-xs focus:outline-none focus:border-ai-accent/30 transition-all placeholder:opacity-20 font-medium"
+                        />
+                    </div>
+                )}
+
+                {/* Suggestions list */}
+                {filtered.length === 0 ? (
+                    <div className="py-16 flex flex-col items-center justify-center text-center space-y-4 px-10 border-2 border-dashed border-white/5 rounded-[40px] bg-white/[0.01]">
+                        <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center border border-white/5 shadow-inner">
+                            <CheckCircle2 className="w-8 h-8 opacity-20" />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-sm font-black uppercase tracking-widest opacity-30">
+                                {currentSuggestions.length > 0 ? 'No matches' : 'All Modules Safe'}
+                            </p>
+                            <p className="text-xs text-muted-foreground opacity-40 font-medium leading-relaxed">
+                                {currentSuggestions.length > 0
+                                    ? 'Try adjusting your filter or keyword.'
+                                    : 'No structural risks or optimization patterns found in the current buffer.'}
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-5">
+                        {filtered.map((s) => (
+                            <div key={s.id} className={cn(
+                                "p-6 rounded-[32px] border transition-all hover:bg-white/[0.03] group relative overflow-hidden",
+                                s.type === 'security' ? "border-risk-critical/10" : "border-ai-accent/10"
+                            )}>
+                                <div className={cn(
+                                    "absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r-full",
+                                    s.type === 'security' ? "bg-risk-critical" : "bg-ai-accent"
+                                )} />
+
+                                <div className="space-y-5">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className={cn(
+                                                "p-2 rounded-xl",
+                                                s.type === 'security' ? "bg-risk-critical/10 text-risk-critical" : "bg-ai-accent/10 text-ai-accent"
+                                            )}>
+                                                {s.type === 'security' ? <ShieldCheck className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Line {s.line}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-full border border-white/10">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-ai-accent animate-pulse" />
+                                                <span className="text-[9px] font-black text-ai-accent uppercase tracking-tighter">
+                                                    {Math.round(s.confidence * 100)}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <h4
+                                            className="text-base font-black tracking-tight leading-tight"
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(s.message) }}
+                                        />
+                                        <p
+                                            className="text-xs text-muted-foreground font-medium leading-relaxed opacity-70"
+                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(s.hint) }}
+                                        />
+                                    </div>
+
+                                    {/* Confidence bar */}
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest opacity-30">
+                                            <span>Confidence Spectrum</span>
+                                            <span>{Math.round(s.confidence * 100)}%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                            <div
+                                                className={cn("h-full rounded-full transition-all duration-1000", s.type === 'security' ? "bg-risk-critical" : "bg-ai-accent")}
+                                                style={{ width: `${s.confidence * 100}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Fix suggestion with copy button */}
+                                    {s.fix && (
+                                        <div className="p-4 bg-[#0a0f1d] rounded-2xl border border-white/5 space-y-2 shadow-inner group-hover:border-ai-accent/20 transition-colors">
+                                            <div className="flex items-center justify-between opacity-30">
+                                                <div className="flex items-center gap-2">
+                                                    <Zap className="w-3 h-3 text-ai-accent" />
+                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">Fix Suggestion</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => copyFix(s.id, s.fix!)}
+                                                    className="flex items-center gap-1 hover:opacity-100 transition-opacity p-1 hover:bg-white/5 rounded-lg"
+                                                    title="Copy fix"
+                                                >
+                                                    {copiedId === s.id
+                                                        ? <Check className="w-3.5 h-3.5 text-green-400" />
+                                                        : <Copy className="w-3.5 h-3.5" />
+                                                    }
+                                                </button>
+                                            </div>
+                                            <code className="block text-[11px] text-ai-accent/90 leading-relaxed font-mono whitespace-pre-wrap">
+                                                {s.fix}
+                                            </code>
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="text-[9px] font-black opacity-30 uppercase tracking-widest">{item.time}</span>
-                                <p className="text-xs font-bold tracking-tight opacity-60 leading-none">{item.label}</p>
                             </div>
                         ))}
                     </div>
-                </div>
+                )}
+
+                {/* Phase 5: Review Timeline */}
+                <ReviewTimeline />
+
+                {/* PR Diff CTA */}
+                {selectedRepo && (
+                    <button
+                        onClick={() => setView('diff')}
+                        className="w-full flex items-center justify-between p-4 rounded-2xl bg-ai-accent/5 border border-ai-accent/20 hover:bg-ai-accent/10 transition-all group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <GitPullRequest className="w-4 h-4 text-ai-accent" />
+                            <span className="text-xs font-black uppercase tracking-widest text-ai-accent">Open PR Diff Viewer</span>
+                        </div>
+                        <span className="text-ai-accent opacity-40 group-hover:opacity-100 transition-opacity">→</span>
+                    </button>
+                )}
             </div>
 
-            {/* AI Command Center Input */}
+            {/* Bottom Input */}
             <div className="p-8 border-t border-white/5 bg-gradient-to-t from-white/[0.02] to-transparent">
                 <div className="relative group">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-ai-accent/0 via-ai-accent/20 to-ai-accent/0 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-all duration-700 blur" />
@@ -220,6 +304,7 @@ export default function IntelligencePanel() {
                             type="text"
                             placeholder="Interrogate the analysis..."
                             className="w-full bg-[#0a0f1d] border border-white/10 rounded-2xl py-4 pl-6 pr-14 text-sm focus:outline-none focus:border-ai-accent/50 transition-all shadow-2xl placeholder:opacity-20 font-medium text-foreground/80"
+                            onChange={e => setKeyword(e.target.value)}
                         />
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-white/5 border border-white/5">
                             <MessageSquare className="w-4 h-4 opacity-20" />
@@ -229,19 +314,10 @@ export default function IntelligencePanel() {
             </div>
 
             <style jsx>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 4px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: rgba(139, 92, 246, 0.3);
-                }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.3); }
             `}</style>
         </div>
     );

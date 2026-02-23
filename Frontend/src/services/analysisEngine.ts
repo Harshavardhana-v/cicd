@@ -8,7 +8,27 @@ export interface AISuggestion {
     fix?: string;
 }
 
+export interface GraphNode {
+    id: string;
+    type: 'file' | 'function' | 'import' | 'class';
+    label: string;
+    data?: any;
+}
+
+export interface GraphEdge {
+    id: string;
+    source: string;
+    target: string;
+    label?: string;
+}
+
+export interface GraphData {
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+}
+
 const SECURITY_PATTERNS = [
+    // ... same as before
     {
         regex: /(?:\bPASSWORD\b|\bSECRET_KEY\b|\bAPI_KEY\b)\s*=\s*["']([^"']+)["']/gi,
         message: "Hardcoded credentials detected.",
@@ -47,24 +67,87 @@ function isCodeFile(fileName: string): boolean {
     return CODE_EXTENSIONS.some(ext => lower.endsWith(ext));
 }
 
-export function analyzeCode(code: string, fileName: string): AISuggestion[] {
-    if (!code || !fileName) return [];
+/**
+ * Simple regex-based structure extraction for visualization
+ */
+function extractStructure(code: string, fileName: string): GraphData {
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
+    const fileId = `file-${fileName}`;
 
-    // Skip non-code files entirely (CSS, markdown, JSON, images, lock files, etc.)
-    if (!isCodeFile(fileName)) return [];
+    // Add main file node
+    nodes.push({ id: fileId, type: 'file', label: fileName.split('/').pop() || fileName });
 
+    const lines = code.split('\n');
+
+    // Regex patterns
+    const patterns = {
+        import: /import\s+.*\s+from\s+['"](.*)['"]/g,
+        func: /(?:function\s+([a-zA-Z0-9_$]+)|(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>)/g,
+        class: /class\s+([a-zA-Z0-9_$]+)/g
+    };
+
+    lines.forEach((line, i) => {
+        // Imports
+        let match;
+        while ((match = patterns.import.exec(line)) !== null) {
+            const importLabel = match[1];
+            const importId = `import-${importLabel}-${i}`;
+            nodes.push({ id: importId, type: 'import', label: importLabel });
+            edges.push({ id: `e-${fileId}-${importId}`, source: fileId, target: importId });
+        }
+
+        // Functions
+        patterns.func.lastIndex = 0; // reset
+        while ((match = patterns.func.exec(line)) !== null) {
+            const funcName = match[1] || match[2];
+            if (funcName) {
+                const funcId = `func-${funcName}-${i}`;
+                nodes.push({ id: funcId, type: 'function', label: funcName });
+                edges.push({ id: `e-${fileId}-${funcId}`, source: fileId, target: funcId });
+            }
+        }
+
+        // Classes
+        patterns.class.lastIndex = 0;
+        while ((match = patterns.class.exec(line)) !== null) {
+            const className = match[1];
+            const classId = `class-${className}-${i}`;
+            nodes.push({ id: classId, type: 'class', label: className });
+            edges.push({ id: `e-${fileId}-${classId}`, source: fileId, target: classId });
+        }
+    });
+
+    return { nodes, edges };
+}
+
+/**
+ * Masks sensitive information (PII) like emails and phone numbers
+ */
+export function maskPII(text: string): string {
+    if (!text) return '';
+    return text
+        .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL-MASKED]')
+        .replace(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, '[PHONE-MASKED]');
+}
+
+export function analyzeCode(code: string, fileName: string): { suggestions: AISuggestion[], graphData: GraphData } {
+    if (!code || !fileName) return { suggestions: [], graphData: { nodes: [], edges: [] } };
+
+    // Skip non-code files entirely
+    if (!isCodeFile(fileName)) return { suggestions: [], graphData: { nodes: [], edges: [] } };
+
+    const graphData = extractStructure(code, fileName);
     const lines = code.split('\n');
     const suggestions: AISuggestion[] = [];
 
     // Scan for security risks using patterns
     SECURITY_PATTERNS.forEach(pattern => {
         let match;
-        // Reset regex state for global matches
         pattern.regex.lastIndex = 0;
 
         while ((match = pattern.regex.exec(code)) !== null) {
             const index = match.index;
-            // Find line number
             const lineNo = code.substring(0, index).split('\n').length;
 
             suggestions.push({
@@ -79,11 +162,11 @@ export function analyzeCode(code: string, fileName: string): AISuggestion[] {
         }
     });
 
-    // Simple heuristic for optimizations (can be expanded)
+    // Simple heuristic for optimizations
     if (fileName.endsWith('.tsx') || fileName.endsWith('.jsx')) {
         lines.forEach((line, i) => {
             if (line.includes('useState') && !line.includes('useMemo') && !line.includes('useCallback')) {
-                if (line.length > 100) { // Heuristic for complex components
+                if (line.length > 100) {
                     suggestions.push({
                         id: `opt-${i + 1}`,
                         line: i + 1,
@@ -97,5 +180,8 @@ export function analyzeCode(code: string, fileName: string): AISuggestion[] {
         });
     }
 
-    return suggestions.sort((a, b) => a.line - b.line);
+    return {
+        suggestions: suggestions.sort((a, b) => a.line - b.line),
+        graphData
+    };
 }

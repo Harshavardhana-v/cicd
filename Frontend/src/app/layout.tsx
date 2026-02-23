@@ -24,6 +24,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://avatars.githubusercontent.com; connect-src 'self' http://localhost:5000 https://api.github.com https://raw.githubusercontent.com; worker-src 'self' blob:; frame-src 'self';"
+        />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased font-sans`}
       >

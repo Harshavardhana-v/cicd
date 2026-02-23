@@ -13,7 +13,6 @@ interface CodeEditorProps {
 const defaultCode = `// Select a file from the Navigator to start deep analysis.
 // CodeSage is currently tracking structural changes in this repository.`;
 
-// Map file extensions to Monaco language IDs
 function getLanguageFromFile(fileName?: string, fallback = 'typescript'): string {
   if (!fileName) return fallback;
   const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
@@ -46,43 +45,39 @@ export default function CodeEditor({ code = defaultCode, language, fileName }: C
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const decorationIdsRef = useRef<string[]>([]);
-  const { currentSuggestions } = useUIStore();
+  const { currentSuggestions, isPrivacyMode } = useUIStore();
 
   function handleEditorDidMount(editor: any, monaco: Monaco) {
     editorRef.current = editor;
     monacoRef.current = monaco;
 
-    // ── Match project tsconfig.json so Monaco stops showing false "Cannot use JSX" errors ──
     const tsDefaults = monaco.languages.typescript.typescriptDefaults;
     tsDefaults.setCompilerOptions({
       target: monaco.languages.typescript.ScriptTarget.ES2017,
       module: monaco.languages.typescript.ModuleKind.ESNext,
       moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-      jsx: monaco.languages.typescript.JsxEmit.ReactJSX,   // "react-jsx"
+      jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
       lib: ['dom', 'dom.iterable', 'esnext'],
       allowJs: true,
       skipLibCheck: true,
       esModuleInterop: true,
       allowSyntheticDefaultImports: true,
-      strict: false,          // keep strict off in editor to avoid noise
+      strict: false,
       isolatedModules: true,
       resolveJsonModule: true,
       noEmit: true,
     });
 
-    // Suppress all built-in diagnostics — we provide our own analysis engine
     tsDefaults.setDiagnosticsOptions({
-      noSemanticValidation: true,   // no red "type" errors
-      noSyntaxValidation: false,    // still catch real syntax typos (unclosed braces etc.)
+      noSemanticValidation: true,
+      noSyntaxValidation: false,
     });
 
-    // Same for plain JavaScript files
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
       noSemanticValidation: true,
       noSyntaxValidation: false,
     });
 
-    // Apply custom theme
     monaco.editor.defineTheme('codesage-dark', {
       base: 'vs-dark',
       inherit: true,
@@ -126,7 +121,20 @@ export default function CodeEditor({ code = defaultCode, language, fileName }: C
   }, [currentSuggestions]);
 
   return (
-    <div className="h-full w-full relative">
+    <div className="h-full w-full relative group">
+      {/* Privacy Overlay */}
+      {isPrivacyMode && (
+        <div className="absolute inset-x-8 inset-y-12 privacy-overlay flex flex-col items-center justify-center gap-6 animate-in fade-in duration-500 rounded-3xl overflow-hidden border border-white/5 shadow-2xl z-[100] cursor-not-allowed">
+          <div className="w-16 h-16 rounded-3xl bg-risk-critical/10 flex items-center justify-center border border-risk-critical/20">
+            <div className="w-3 h-3 rounded-full bg-risk-critical animate-ping" />
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="text-sm font-black uppercase tracking-[0.3em] text-risk-critical">Privacy Mode Active</h3>
+            <p className="text-[11px] font-bold opacity-40 uppercase tracking-widest leading-relaxed max-w-[200px]">Code is currently blurred for security during screen presentation.</p>
+          </div>
+        </div>
+      )}
+
       <style jsx global>{`
                 .ai-gutter-icon {
                     background-color: #8B5CF6;
@@ -148,6 +156,12 @@ export default function CodeEditor({ code = defaultCode, language, fileName }: C
                 .monaco-editor .scroll-decoration {
                   box-shadow: none !important;
                 }
+                .monaco-editor .view-line, 
+                .monaco-editor .view-lines,
+                .monaco-editor .lines-content { 
+                  transition: none !important; 
+                  animation: none !important;
+                }
             `}</style>
       <Editor
         height="100%"
@@ -158,19 +172,32 @@ export default function CodeEditor({ code = defaultCode, language, fileName }: C
         options={{
           minimap: { enabled: true, scale: 0.75 },
           glyphMargin: true,
-          fontSize: 15,
-          fontFamily: 'var(--font-jetbrains-mono)',
+          fontSize: 14,
+          fontFamily: 'monospace',
           lineNumbers: 'on',
-          roundedSelection: true,
+          roundedSelection: false,
           scrollBeyondLastLine: false,
           readOnly: false,
-          automaticLayout: true,
-          padding: { top: 40, bottom: 40 },
-          fontLigatures: true,
-          cursorSmoothCaretAnimation: 'on',
-          smoothScrolling: true,
-          lineHeight: 28,
-          letterSpacing: 0.5,
+          automaticLayout: false,
+          padding: { top: 10, bottom: 10 },
+          fontLigatures: false,
+          cursorSmoothCaretAnimation: 'off',
+          smoothScrolling: false,
+          hideCursorInOverviewRuler: true,
+          fixedOverflowWidgets: true,
+          renderLineHighlight: 'none',
+          renderWhitespace: 'none',
+          cursorBlinking: 'solid',
+          letterSpacing: 0,
+          guides: { indentation: false },
+          stopRenderingLineAfter: -1,
+          scrollbar: {
+            vertical: 'visible',
+            horizontal: 'visible',
+            useShadows: false,
+            verticalScrollbarSize: 10,
+            horizontalScrollbarSize: 10,
+          }
         }}
       />
     </div>

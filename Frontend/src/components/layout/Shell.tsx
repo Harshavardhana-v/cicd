@@ -1,10 +1,12 @@
 "use client";
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { ChevronLeft } from 'lucide-react';
+import { Loader2, Shield, ShieldOff } from 'lucide-react';
 import { useUIStore } from '@/store/useStore';
+import CommandPalette from './CommandPalette';
+import PresenceIndicators from '../ui/PresenceIndicators';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -16,128 +18,176 @@ interface ShellProps {
     zoneC: React.ReactNode;
 }
 
-import CommandPalette from './CommandPalette';
+const ASTViewer = lazy(() => import('../views/ASTViewer'));
 
 export default function Shell({ zoneA, zoneB, zoneC }: ShellProps) {
-    const { isZoneAExpanded, toggleZoneA, isZoneCExpanded, toggleZoneC, selectedRepo, repoOwner, setView } = useUIStore();
+    const {
+        isZoneAExpanded,
+        toggleZoneA,
+        isZoneCExpanded,
+        toggleZoneC,
+        selectedRepo,
+        repoOwner,
+        focusMode,
+        setFocusMode,
+        prsCount,
+        issuesCount,
+        isPrivacyMode,
+        setPrivacyMode
+    } = useUIStore();
+
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+                e.preventDefault();
+                toggleZoneA();
+            }
+            if ((e.metaKey || e.ctrlKey) && (e.key === '\\' || e.key === '|')) {
+                e.preventDefault();
+                toggleZoneC();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [toggleZoneA, toggleZoneC]);
 
     return (
-        <div className="flex h-screen w-full overflow-hidden bg-background text-foreground selection:bg-ai-accent/30">
+        <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
             <CommandPalette />
-            {/* Zone A: Sidebar */}
-            <aside
-                className={cn(
-                    "relative flex flex-col border-r border-white/5 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] bg-sidebar/20 backdrop-blur-3xl",
-                    isZoneAExpanded ? "w-[340px]" : "w-[80px]"
-                )}
-            >
+
+            {/* Sidebar */}
+            <aside className={cn(
+                "relative flex flex-col border-r border-white/5 bg-sidebar/20",
+                isZoneAExpanded ? "w-[340px]" : "w-[80px]"
+            )}>
                 <div className="flex h-20 items-center justify-between px-8 border-b border-white/5">
-                    {isZoneAExpanded && <span className="text-xs font-black uppercase tracking-[0.2em] opacity-40">Navigator</span>}
-                    <button
-                        onClick={toggleZoneA}
-                        className="p-2 hover:bg-white/5 rounded-xl transition-colors opacity-40 hover:opacity-100"
-                    >
+                    {isZoneAExpanded && (
+                        <span className="text-xs font-black uppercase tracking-[0.2em] opacity-40">
+                            Navigator
+                        </span>
+                    )}
+                    <button onClick={toggleZoneA} className="p-2 rounded-xl opacity-40">
                         {isZoneAExpanded ? "←" : "→"}
                     </button>
                 </div>
-                <div className={cn("flex-1 overflow-y-auto scrollbar-hide py-6", !isZoneAExpanded && "items-center")}>
+                <div className="flex-1 overflow-y-auto py-6">
                     {zoneA}
                 </div>
             </aside>
 
-            {/* Zone B: Editor Stage */}
-            <main className="flex-1 flex flex-col min-w-0 bg-background/50 relative">
-                <div className="h-24 px-8 border-b border-white/5 bg-sidebar/10 backdrop-blur-md grid grid-cols-3 items-center relative z-50">
-                    {/* Left: Repo Context */}
-                    <div className="flex items-center justify-start gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-2.5 h-2.5 rounded-full bg-ai-accent animate-pulse shadow-[0_0_15px_rgba(139,92,246,0.6)]" />
+            {/* Editor */}
+            <main className="flex-1 flex flex-col min-w-0 bg-background relative">
+                <div className="h-24 px-8 border-b border-white/5 flex items-center justify-between gap-8">
+
+                    {/* Repo info */}
+                    <div className="flex-1 flex items-center gap-6 min-w-0">
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                            <div className="w-2.5 h-2.5 rounded-full bg-ai-accent" />
                             <div className="flex flex-col">
                                 {repoOwner && (
-                                    <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest leading-none mb-1">{repoOwner}</span>
+                                    <span className="text-[10px] opacity-30 uppercase tracking-widest">
+                                        {repoOwner}
+                                    </span>
                                 )}
-                                <span className="text-sm text-foreground uppercase tracking-[0.2em] font-black leading-none">
+                                <span className="text-sm uppercase tracking-[0.2em] font-black truncate max-w-[120px]">
                                     {selectedRepo || "Local Session"}
                                 </span>
                             </div>
                         </div>
 
                         {selectedRepo && (
-                            <>
-                                <div className="h-8 w-[1px] bg-white/5" />
-                                <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-6">
+                                <div className="flex gap-4">
                                     <div className="flex flex-col">
-                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-30 leading-tight">Active PRs</span>
-                                        <span className="text-xs font-black italic text-ai-accent">{useUIStore.getState().prsCount}</span>
+                                        <span className="text-xs font-black text-ai-accent">{prsCount}</span>
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-30 leading-tight">Issues</span>
-                                        <span className="text-xs font-black italic text-risk-warning">{useUIStore.getState().issuesCount}</span>
+                                        <span className="text-xs font-black text-risk-warning">{issuesCount}</span>
                                     </div>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
 
-                    {/* Center: Focus Mode Switcher */}
-                    <div className="flex items-center justify-center">
-                        <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-full border border-white/5 shadow-2xl backdrop-blur-xl">
-                            <button
-                                onClick={() => useUIStore.getState().setFocusMode('review')}
-                                className={cn(
-                                    "px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300",
-                                    useUIStore.getState().focusMode === 'review'
-                                        ? "bg-foreground text-background shadow-lg scale-105"
-                                        : "hover:bg-white/5 opacity-40 hover:opacity-100"
-                                )}
-                            >
-                                Review
-                            </button>
-                            <button
-                                onClick={() => useUIStore.getState().setFocusMode('analysis')}
-                                className={cn(
-                                    "px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300",
-                                    useUIStore.getState().focusMode === 'analysis'
-                                        ? "bg-ai-accent text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] scale-105"
-                                        : "hover:bg-white/5 opacity-40 hover:opacity-100"
-                                )}
-                            >
-                                Analysis
-                            </button>
-                        </div>
+                    {/* Focus buttons */}
+                    <div className="flex items-center gap-2 bg-black/40 p-1 rounded-full border border-white/5">
+                        <button
+                            onClick={() => setFocusMode('review')}
+                            className={cn(
+                                "px-5 py-2 rounded-full text-[11px] font-black uppercase",
+                                focusMode === 'review' ? "bg-foreground text-background" : "opacity-50"
+                            )}
+                        >
+                            Review
+                        </button>
+                        <button
+                            onClick={() => setFocusMode('analysis')}
+                            className={cn(
+                                "px-5 py-2 rounded-full text-[11px] font-black uppercase",
+                                focusMode === 'analysis' ? "bg-ai-accent text-white" : "opacity-50"
+                            )}
+                        >
+                            Analysis
+                        </button>
                     </div>
 
-                    {/* Right: Version & Meta */}
-                    <div className="flex items-center justify-end gap-6">
+                    {/* Right section */}
+                    <div className="flex-1 flex items-center justify-end gap-6">
+                        <button
+                            onClick={() => setPrivacyMode(!isPrivacyMode)}
+                            className={cn(
+                                "p-2 rounded-xl flex items-center gap-2",
+                                isPrivacyMode ? "bg-risk-critical/10 text-risk-critical border border-risk-critical/20" : "bg-white/5"
+                            )}
+                        >
+                            {isPrivacyMode ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
+                            <span className="text-[10px] uppercase hidden xl:block">
+                                {isPrivacyMode ? "Privacy On" : "Privacy Off"}
+                            </span>
+                        </button>
+
+                        <PresenceIndicators />
+
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span className="text-[9px] font-medium opacity-50 uppercase tracking-wider">System Online</span>
+                            <span className="text-[10px] opacity-50 uppercase">System Online</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-[0.1em] font-black opacity-20">code-sage.v2.4.6</span>
                     </div>
                 </div>
-                <div className="flex-1 overflow-hidden">
-                    {zoneB}
+
+                {/* Editor body */}
+                <div className="flex-1 overflow-hidden relative">
+                    {focusMode === 'analysis' ? (
+                        <Suspense fallback={
+                            <div className="h-full w-full flex flex-col items-center justify-center bg-[#050a14] gap-4">
+                                <Loader2 className="w-10 h-10 text-ai-accent opacity-20" />
+                                <span className="text-[10px] uppercase opacity-20">
+                                    Loading Graph...
+                                </span>
+                            </div>
+                        }>
+                            <ASTViewer />
+                        </Suspense>
+                    ) : zoneB}
                 </div>
             </main>
 
-            {/* Zone C: Intelligence Panel */}
-            <aside
-                className={cn(
-                    "relative flex flex-col border-l border-white/5 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] bg-sidebar/20 backdrop-blur-3xl",
-                    isZoneCExpanded ? "w-[440px]" : "w-[80px]"
-                )}
-            >
+            {/* Right panel */}
+            <aside className={cn(
+                "relative flex flex-col border-l border-white/5 bg-sidebar/40",
+                isZoneCExpanded ? "w-[440px]" : "w-[80px]"
+            )}>
                 <div className="flex h-20 items-center justify-between px-8 border-b border-white/5">
-                    <button
-                        onClick={toggleZoneC}
-                        className="p-2 hover:bg-white/5 rounded-xl transition-colors opacity-40 hover:opacity-100"
-                    >
+                    <button onClick={toggleZoneC} className="p-2 rounded-xl opacity-40">
                         {isZoneCExpanded ? "→" : "←"}
                     </button>
-                    {isZoneCExpanded && <span className="text-xs font-black uppercase tracking-[0.2em] opacity-40">Intelligence</span>}
+                    {isZoneCExpanded && (
+                        <span className="text-xs font-black uppercase tracking-[0.2em] opacity-40">
+                            Intelligence
+                        </span>
+                    )}
                 </div>
-                <div className="flex-1 overflow-y-auto scrollbar-hide">
+                <div className="flex-1 overflow-y-auto">
                     {zoneC}
                 </div>
             </aside>

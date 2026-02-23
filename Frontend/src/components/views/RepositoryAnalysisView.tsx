@@ -12,12 +12,12 @@ import {
     Loader2,
     AlertTriangle,
     Github,
-    BarChart3,
-    History,
-    Activity
+    Activity,
+    History
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { IntelligencePanelSkeleton, FileTreeSkeleton } from '../ui/Skeletons';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -32,8 +32,6 @@ export default function RepositoryAnalysisView() {
         issuesCount,
         setRepoFiles,
         setRepoBranch,
-        setPRsCount,
-        setIssuesCount,
         setCodeToReview,
         setActiveFile,
         repoFiles
@@ -77,16 +75,33 @@ export default function RepositoryAnalysisView() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-1000">
-                <div className="relative">
-                    <div className="w-32 h-32 rounded-full border-b-2 border-ai-accent animate-spin" />
-                    <Zap className="w-12 h-12 text-ai-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
-                </div>
-                <div className="text-center space-y-4">
-                    <h2 className="text-3xl font-black italic tracking-widest text-ai-accent">VIBRATING AT SCALE</h2>
-                    <p className="text-muted-foreground font-mono text-sm opacity-50 uppercase tracking-[0.3em]">
-                        Scanning {selectedRepo} internal structures...
-                    </p>
+            <div className="min-h-screen bg-background p-12 space-y-12 animate-in fade-in duration-700 font-sans">
+                <div className="max-w-[1400px] mx-auto space-y-12">
+                    <div className="flex justify-between items-center">
+                        <div className="space-y-2">
+                            <div className="h-4 w-32 bg-white/5 animate-pulse rounded-full" />
+                            <div className="h-10 w-64 bg-white/5 animate-pulse rounded-full" />
+                        </div>
+                        <div className="h-12 w-48 bg-white/5 animate-pulse rounded-2xl" />
+                    </div>
+                    <div className="grid grid-cols-12 gap-10">
+                        <div className="col-span-4 space-y-10">
+                            <div className="h-[400px] bg-white/5 animate-pulse rounded-[48px]" />
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="h-32 bg-white/5 animate-pulse rounded-3xl" />
+                                <div className="h-32 bg-white/5 animate-pulse rounded-3xl" />
+                            </div>
+                        </div>
+                        <div className="col-span-8 space-y-10">
+                            <div className="h-12 w-48 bg-white/5 animate-pulse rounded-full" />
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="h-64 bg-white/5 animate-pulse rounded-[40px]" />
+                                <div className="h-64 bg-white/5 animate-pulse rounded-[40px]" />
+                                <div className="h-64 bg-white/5 animate-pulse rounded-[40px]" />
+                                <div className="h-64 bg-white/5 animate-pulse rounded-[40px]" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -111,21 +126,13 @@ export default function RepositoryAnalysisView() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                    {/* Left Panel: Core Score */}
                     <div className="lg:col-span-4 space-y-10">
                         <div className="glass rounded-[48px] p-12 flex flex-col items-center text-center space-y-8 relative overflow-hidden shadow-2xl transition-all hover:border-ai-accent/30">
                             <div className="relative">
                                 <svg className="w-48 h-48 -rotate-90">
+                                    <circle cx="96" cy="96" r="88" className="fill-none stroke-white/5 stroke-[12px]" />
                                     <circle
-                                        cx="96"
-                                        cy="96"
-                                        r="88"
-                                        className="fill-none stroke-white/5 stroke-[12px]"
-                                    />
-                                    <circle
-                                        cx="96"
-                                        cy="96"
-                                        r="88"
+                                        cx="96" cy="96" r="88"
                                         className="fill-none stroke-ai-accent stroke-[12px] opacity-100"
                                         strokeDasharray={552.92}
                                         strokeDashoffset={552.92 * (1 - scanData?.qualityScore / 100)}
@@ -159,14 +166,12 @@ export default function RepositoryAnalysisView() {
                         </div>
                     </div>
 
-                    {/* Right Panel: Deep Insights */}
                     <div className="lg:col-span-8 space-y-10">
                         <h2 className="text-4xl font-black tracking-tight italic flex items-center gap-4">
                             <Activity className="w-10 h-10 text-ai-accent" /> Analysis Breakdown
                         </h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Security Vulnerabilities */}
                             <div className="glass rounded-[40px] p-8 space-y-6 flex flex-col border-l-4 border-l-risk-critical">
                                 <div className="flex items-center justify-between">
                                     <h4 className="font-black uppercase tracking-widest text-sm opacity-50 flex items-center gap-3">
@@ -191,7 +196,6 @@ export default function RepositoryAnalysisView() {
                                 </div>
                             </div>
 
-                            {/* Guideline Violations */}
                             <div className="glass rounded-[40px] p-8 space-y-6 flex flex-col border-l-4 border-l-risk-warning">
                                 <div className="flex items-center justify-between">
                                     <h4 className="font-black uppercase tracking-widest text-sm opacity-50 flex items-center gap-3">
@@ -210,7 +214,6 @@ export default function RepositoryAnalysisView() {
                                 </div>
                             </div>
 
-                            {/* Documentation Defects */}
                             <div className="glass rounded-[40px] p-8 space-y-6 flex flex-col border-l-4 border-l-ai-accent">
                                 <div className="flex items-center justify-between">
                                     <h4 className="font-black uppercase tracking-widest text-sm opacity-50 flex items-center gap-3">
@@ -226,7 +229,6 @@ export default function RepositoryAnalysisView() {
                                 </div>
                             </div>
 
-                            {/* PR Impact Analysis */}
                             <div className="glass rounded-[40px] p-8 space-y-6 flex flex-col border-l-4 border-l-risk-safe">
                                 <div className="flex items-center justify-between">
                                     <h4 className="font-black uppercase tracking-widest text-sm opacity-50 flex items-center gap-3">
@@ -245,7 +247,6 @@ export default function RepositoryAnalysisView() {
                         <div className="pt-10 flex items-center justify-end border-t border-white/5 mt-6">
                             <button
                                 onClick={async () => {
-                                    // Auto-select the first meaningful file (README.md or first src file)
                                     const firstFile = repoFiles.find(f =>
                                         f.type === 'blob' && (f.path.toLowerCase().includes('readme.md') || f.path.startsWith('src/'))
                                     ) || repoFiles.find(f => f.type === 'blob');
@@ -254,7 +255,6 @@ export default function RepositoryAnalysisView() {
                                         setActiveFile(firstFile.path);
                                         const branch = useUIStore.getState().repoBranch || 'main';
                                         const rawUrl = `https://raw.githubusercontent.com/${repoOwner}/${selectedRepo}/${branch}/${firstFile.path}`;
-
                                         try {
                                             const res = await fetch(rawUrl);
                                             if (res.ok) {
@@ -265,7 +265,6 @@ export default function RepositoryAnalysisView() {
                                             console.error("Auto-fetch failed", e);
                                         }
                                     }
-
                                     setView('review');
                                 }}
                                 className="px-12 py-5 bg-ai-accent rounded-[32px] text-white font-black text-xl flex items-center gap-4 hover:scale-105 transition-all shadow-[0_20px_60px_rgba(139,92,246,0.5)] active:scale-95 group"

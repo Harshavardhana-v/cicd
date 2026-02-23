@@ -5,6 +5,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { FileCode, Folder, ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
 import { useUIStore } from '@/store/useStore';
+import { FileTreeSkeleton } from '../ui/Skeletons';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -43,7 +44,6 @@ const FileTreeNode = ({ node, depth = 0, activeFile, handleFileClick }: FileTree
     const isActive = activeFile === node.path;
     const [isOpen, setIsOpen] = React.useState(depth < 1);
 
-    // Only use real risk data — no fake heuristics based on file name
     const risk = node.risk || 0;
 
     return (
@@ -115,8 +115,6 @@ export default function FileTree() {
     // Convert flat GitHub tree to nested structure
     const buildTree = (files: any[]) => {
         if (!files || !Array.isArray(files)) return [];
-        console.log(`Building tree with ${files.length} nodes...`);
-
         const root: FileNode[] = [];
         const map: Record<string, FileNode> = {};
 
@@ -149,7 +147,6 @@ export default function FileTree() {
             });
         });
 
-        // Sort: Folders first, then alphabetically
         const sortTree = (nodes: FileNode[]) => {
             nodes.sort((a, b) => {
                 if (a.type === b.type) return a.name.localeCompare(b.name);
@@ -166,51 +163,73 @@ export default function FileTree() {
 
     const treeData = React.useMemo(() => buildTree(repoFiles || []), [repoFiles]);
 
+    const flatFiles = React.useMemo(() => {
+        const list: string[] = [];
+        const traverse = (nodes: FileNode[]) => {
+            nodes.forEach(n => {
+                if (n.type === 'file') list.push(n.path);
+                if (n.children) traverse(n.children);
+            });
+        };
+        traverse(treeData);
+        return list;
+    }, [treeData]);
+
+    React.useEffect(() => {
+        const handleKeys = (e: KeyboardEvent) => {
+            if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
+            const currentIndex = flatFiles.indexOf(activeFile || '');
+            if (e.key === 'j') {
+                const nextFile = flatFiles[currentIndex + 1];
+                if (nextFile) handleFileClick(nextFile);
+            } else if (e.key === 'k') {
+                const prevFile = flatFiles[currentIndex - 1];
+                if (prevFile) handleFileClick(prevFile);
+            }
+        };
+        window.addEventListener('keydown', handleKeys);
+        return () => window.removeEventListener('keydown', handleKeys);
+    }, [activeFile, flatFiles]);
+
     const handleFileClick = async (path: string) => {
         setActiveFile(path);
-
-        // If content is already cached, use it
         if (fileContents[path]) {
             setCodeToReview(fileContents[path]);
             return;
         }
 
         try {
-            const branch = repoBranch || 'main'; // Fallback
+            const branch = repoBranch || 'main';
             const rawUrl = `https://raw.githubusercontent.com/${repoOwner}/${selectedRepo}/${branch}/${path}`;
-            console.log(`Fetching from GitHub: ${rawUrl}`);
-
             const response = await fetch(rawUrl);
             if (response.ok) {
                 const content = await response.text();
                 setFileContent(path, content);
                 setCodeToReview(content);
             } else {
-                setCodeToReview(`// Failed to fetch content for ${path}\n// Branch: ${branch}\n// Check if private repo or branch mismatch.`);
+                setCodeToReview(`// Failed to fetch content for ${path}`);
             }
         } catch (err) {
             console.error("Failed to fetch file:", err);
-            setCodeToReview(`// Network error fetching file: ${path}\n// ${err}`);
+            setCodeToReview(`// Network error fetching file: ${path}`);
         }
     };
 
+    if (!repoFiles || repoFiles.length === 0) {
+        return <FileTreeSkeleton />;
+    }
+
     return (
         <div className="py-2 space-y-0.5">
-            {treeData.length > 0 ? (
-                treeData.map(node => (
-                    <FileTreeNode
-                        key={node.path}
-                        node={node}
-                        activeFile={activeFile}
-                        handleFileClick={handleFileClick}
-                    />
-                ))
-            ) : (
-                <div className="px-8 py-10 text-center space-y-4 opacity-30">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-                    <p className="text-xs font-black uppercase tracking-widest">Constructing Tree...</p>
-                </div>
-            )}
+            {treeData.map(node => (
+                <FileTreeNode
+                    key={node.path}
+                    node={node}
+                    activeFile={activeFile}
+                    handleFileClick={handleFileClick}
+                />
+            ))}
         </div>
     );
 }

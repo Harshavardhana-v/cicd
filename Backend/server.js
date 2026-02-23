@@ -102,6 +102,89 @@ app.post('/api/analysis/scan', async (req, res) => {
     });
 });
 
+// Endpoint: Fetch real Pull Requests from GitHub
+app.get('/api/github/prs/:owner/:repo', async (req, res) => {
+    const { owner, repo } = req.params;
+    const { state = 'open', per_page = 20 } = req.query;
+    try {
+        const headers = process.env.GITHUB_TOKEN
+            ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+            : {};
+        const response = await axios.get(
+            `https://api.github.com/repos/${owner}/${repo}/pulls?state=${state}&per_page=${per_page}`,
+            { headers }
+        );
+        const prs = response.data.map(pr => ({
+            number: pr.number,
+            title: pr.title,
+            state: pr.state,
+            user: pr.user.login,
+            userAvatar: pr.user.avatar_url,
+            createdAt: pr.created_at,
+            updatedAt: pr.updated_at,
+            body: pr.body,
+            headBranch: pr.head.ref,
+            baseBranch: pr.base.ref,
+            headSha: pr.head.sha,
+            baseSha: pr.base.sha,
+            additions: pr.additions,
+            deletions: pr.deletions,
+            changedFiles: pr.changed_files,
+            draft: pr.draft,
+            merged: pr.merged,
+            mergedAt: pr.merged_at,
+            url: pr.html_url,
+            filesUrl: pr.url + '/files',
+        }));
+        res.json({ prs });
+    } catch (error) {
+        console.error('Error fetching PRs:', error.message);
+        res.status(500).json({ error: 'Failed to fetch pull requests' });
+    }
+});
+
+// Endpoint: Fetch individual file content from GitHub
+app.get('/api/github/file/:owner/:repo', async (req, res) => {
+    const { owner, repo } = req.params;
+    const { path, branch = 'main' } = req.query;
+    if (!path) return res.status(400).json({ error: 'path query param required' });
+    try {
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+        const response = await axios.get(rawUrl, { responseType: 'text' });
+        res.json({ content: response.data, path, branch });
+    } catch (error) {
+        console.error('Error fetching file:', error.message);
+        res.status(404).json({ error: `File not found: ${path}` });
+    }
+});
+
+// Endpoint: Fetch PR file diffs
+app.get('/api/github/pr-files/:owner/:repo/:prNumber', async (req, res) => {
+    const { owner, repo, prNumber } = req.params;
+    try {
+        const headers = process.env.GITHUB_TOKEN
+            ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+            : {};
+        const response = await axios.get(
+            `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`,
+            { headers }
+        );
+        const files = response.data.map(f => ({
+            filename: f.filename,
+            status: f.status,
+            additions: f.additions,
+            deletions: f.deletions,
+            patch: f.patch || '',
+            rawUrl: f.raw_url,
+            blobUrl: f.blob_url,
+        }));
+        res.json({ files });
+    } catch (error) {
+        console.error('Error fetching PR files:', error.message);
+        res.status(500).json({ error: 'Failed to fetch PR file diffs' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`CodeSage Backend running on port ${PORT}`);
 });
