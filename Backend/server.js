@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // GitHub API Proxy for PRs and Issues
 app.get('/api/github/metrics/:owner/:repo', async (req, res) => {

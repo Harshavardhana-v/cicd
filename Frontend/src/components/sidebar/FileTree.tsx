@@ -43,8 +43,8 @@ const FileTreeNode = ({ node, depth = 0, activeFile, handleFileClick }: FileTree
     const isActive = activeFile === node.path;
     const [isOpen, setIsOpen] = React.useState(depth < 1);
 
-    // Simulate risk for demo if not provided
-    const risk = node.risk || (node.name.includes('auth') ? 85 : node.name.includes('service') ? 45 : 0);
+    // Only use real risk data — no fake heuristics based on file name
+    const risk = node.risk || 0;
 
     return (
         <div className="select-none py-0.5">

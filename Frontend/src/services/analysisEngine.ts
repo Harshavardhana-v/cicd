@@ -39,8 +39,19 @@ const SECURITY_PATTERNS = [
     }
 ];
 
+// Only analyze real code files – not CSS, markdown, JSON, images, config, etc.
+const CODE_EXTENSIONS = ['.js', '.ts', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.cpp', '.c', '.php', '.rb', '.swift', '.kt'];
+
+function isCodeFile(fileName: string): boolean {
+    const lower = fileName.toLowerCase();
+    return CODE_EXTENSIONS.some(ext => lower.endsWith(ext));
+}
+
 export function analyzeCode(code: string, fileName: string): AISuggestion[] {
-    if (!code) return [];
+    if (!code || !fileName) return [];
+
+    // Skip non-code files entirely (CSS, markdown, JSON, images, lock files, etc.)
+    if (!isCodeFile(fileName)) return [];
 
     const lines = code.split('\n');
     const suggestions: AISuggestion[] = [];

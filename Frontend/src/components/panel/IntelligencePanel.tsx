@@ -14,8 +14,20 @@ function cn(...inputs: ClassValue[]) {
 export default function IntelligencePanel() {
     const { activeFile, setSuggestions, currentSuggestions, codeToReview } = useUIStore();
 
+    const CODE_EXTENSIONS = ['.js', '.ts', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.cpp', '.c', '.php', '.rb', '.swift', '.kt'];
+
     useEffect(() => {
-        if (codeToReview && activeFile) {
+        if (!activeFile) {
+            setSuggestions([]);
+            return;
+        }
+        const isCode = CODE_EXTENSIONS.some(ext => activeFile.toLowerCase().endsWith(ext));
+        if (!isCode) {
+            // Non-code file (CSS, JSON, markdown, etc.) — clear any old suggestions
+            setSuggestions([]);
+            return;
+        }
+        if (codeToReview) {
             const suggestions = analyzeCode(codeToReview, activeFile);
             setSuggestions(suggestions);
         }

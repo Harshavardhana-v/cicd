@@ -12,7 +12,7 @@ import CodeEditor from "@/components/editor/Editor";
 import IntelligencePanel from "@/components/panel/IntelligencePanel";
 
 export default function Home() {
-  const { view, codeToReview } = useUIStore();
+  const { view, codeToReview, activeFile } = useUIStore();
 
   if (view === 'welcome') return <WelcomeView />;
   if (view === 'selection') return <SelectionView />;
@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <Shell
       zoneA={<FileTree />}
-      zoneB={<CodeEditor code={codeToReview || undefined} />}
+      zoneB={<CodeEditor code={codeToReview || undefined} fileName={activeFile ?? undefined} />}
       zoneC={<IntelligencePanel />}
     />
   );
