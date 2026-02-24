@@ -3,7 +3,7 @@
 import React, { Suspense, lazy } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Loader2, Shield, ShieldOff } from 'lucide-react';
+import { Loader2, Shield, ShieldOff, Target } from 'lucide-react';
 import { useUIStore } from '@/store/useStore';
 import CommandPalette from './CommandPalette';
 import PresenceIndicators from '../ui/PresenceIndicators';
@@ -19,6 +19,7 @@ interface ShellProps {
 }
 
 const ASTViewer = lazy(() => import('../views/ASTViewer'));
+const IntelligencePanel = lazy(() => import('../panel/IntelligencePanel'));
 
 export default function Shell({ zoneA, zoneB, zoneC }: ShellProps) {
     const {
@@ -33,7 +34,9 @@ export default function Shell({ zoneA, zoneB, zoneC }: ShellProps) {
         prsCount,
         issuesCount,
         isPrivacyMode,
-        setPrivacyMode
+        setPrivacyMode,
+        isMacroView,
+        setMacroView
     } = useUIStore();
 
     React.useEffect(() => {
@@ -132,25 +135,42 @@ export default function Shell({ zoneA, zoneB, zoneC }: ShellProps) {
                     </div>
 
                     {/* Right section */}
-                    <div className="flex-1 flex items-center justify-end gap-6">
-                        <button
-                            onClick={() => setPrivacyMode(!isPrivacyMode)}
-                            className={cn(
-                                "p-2 rounded-xl flex items-center gap-2",
-                                isPrivacyMode ? "bg-risk-critical/10 text-risk-critical border border-risk-critical/20" : "bg-white/5"
-                            )}
-                        >
-                            {isPrivacyMode ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
-                            <span className="text-[10px] uppercase hidden xl:block">
-                                {isPrivacyMode ? "Privacy On" : "Privacy Off"}
-                            </span>
-                        </button>
+                    <div className="flex items-center gap-6">
+                        <div className="hidden xl:flex items-center gap-2 bg-white/[0.02] border border-white/5 p-1 rounded-2xl">
+                            <button
+                                onClick={() => setPrivacyMode(!isPrivacyMode)}
+                                className={cn(
+                                    "px-4 py-2 rounded-xl flex items-center gap-2 transition-all",
+                                    isPrivacyMode ? "bg-risk-critical/10 text-risk-critical border border-risk-critical/20" : "hover:bg-white/5"
+                                )}
+                            >
+                                {isPrivacyMode ? <Shield className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                                <span className="text-[9px] font-black uppercase tracking-widest">
+                                    {isPrivacyMode ? "Privacy On" : "Privacy Off"}
+                                </span>
+                            </button>
+
+                            <button
+                                onClick={() => setMacroView(!isMacroView)}
+                                className={cn(
+                                    "px-4 py-2 rounded-xl flex items-center gap-2 transition-all",
+                                    isMacroView ? "bg-ai-accent/10 text-ai-accent border border-ai-accent/20" : "hover:bg-white/5"
+                                )}
+                            >
+                                <Target className={cn("w-3.5 h-3.5", isMacroView && "animate-pulse")} />
+                                <span className="text-[9px] font-black uppercase tracking-widest">
+                                    {isMacroView ? "Macro View" : "Code View"}
+                                </span>
+                            </button>
+                        </div>
+
+                        <div className="h-8 w-[1px] bg-white/5" />
 
                         <PresenceIndicators />
 
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span className="text-[10px] opacity-50 uppercase">System Online</span>
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[9px] font-black opacity-30 uppercase tracking-widest">System Live</span>
                         </div>
                     </div>
                 </div>
@@ -188,7 +208,9 @@ export default function Shell({ zoneA, zoneB, zoneC }: ShellProps) {
                     )}
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                    {zoneC}
+                    <Suspense fallback={<div className="h-full w-full bg-[#050a14]" />}>
+                        {zoneC}
+                    </Suspense>
                 </div>
             </aside>
         </div>

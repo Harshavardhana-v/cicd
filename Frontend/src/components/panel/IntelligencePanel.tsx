@@ -7,7 +7,8 @@ import { twMerge } from 'tailwind-merge';
 import { useUIStore } from '@/store/useStore';
 import { analyzeCode } from '@/services/analysisEngine';
 
-import DOMPurify from 'dompurify';
+import { sanitizeAIContent } from '@/lib/security';
+import { sensory } from '@/lib/sensory';
 import { IntelligencePanelSkeleton } from '../ui/Skeletons';
 import ReviewTimeline from './ReviewTimeline';
 
@@ -46,6 +47,14 @@ export default function IntelligencePanel() {
                 setSuggestions(suggestions ?? []);
                 setGraphData(graphData ?? { nodes: [], edges: [] });
                 setIsAnalyzing(false);
+
+                // sensory feedback
+                if (suggestions && suggestions.length > 0) {
+                    sensory.playSuccessChime();
+                    if (suggestions.some(s => s.type === 'security')) {
+                        setTimeout(() => sensory.playRiskAlert(), 300);
+                    }
+                }
             }, 600);
             return () => clearTimeout(timer);
         }
@@ -192,10 +201,14 @@ export default function IntelligencePanel() {
                 ) : (
                     <div className="space-y-5">
                         {filtered.map((s) => (
-                            <div key={s.id} className={cn(
-                                "p-6 rounded-[32px] border transition-all hover:bg-white/[0.03] group relative overflow-hidden",
-                                s.type === 'security' ? "border-risk-critical/10" : "border-ai-accent/10"
-                            )}>
+                            <div
+                                key={s.id}
+                                onMouseEnter={() => { if (s.type === 'security') sensory.triggerHapticPulse(15); }}
+                                className={cn(
+                                    "p-6 rounded-[32px] border transition-all hover:bg-white/[0.03] group relative overflow-hidden",
+                                    s.type === 'security' ? "border-risk-critical/10" : "border-ai-accent/10"
+                                )}
+                            >
                                 <div className={cn(
                                     "absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r-full",
                                     s.type === 'security' ? "bg-risk-critical" : "bg-ai-accent"
@@ -225,11 +238,11 @@ export default function IntelligencePanel() {
                                     <div className="space-y-2">
                                         <h4
                                             className="text-base font-black tracking-tight leading-tight"
-                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(s.message) }}
+                                            dangerouslySetInnerHTML={{ __html: sanitizeAIContent(s.message) }}
                                         />
                                         <p
                                             className="text-xs text-muted-foreground font-medium leading-relaxed opacity-70"
-                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(s.hint) }}
+                                            dangerouslySetInnerHTML={{ __html: sanitizeAIContent(s.hint) }}
                                         />
                                     </div>
 
@@ -246,6 +259,27 @@ export default function IntelligencePanel() {
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Counterfactual Explanations (What-if) */}
+                                    {s.type === 'security' && (
+                                        <div className="p-4 rounded-2xl bg-white/[0.01] border border-white/5 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-30">Counterfactual</span>
+                                                <div className="px-2 py-0.5 rounded-md bg-risk-critical/10 text-[8px] font-black text-risk-critical uppercase">Interactive</div>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-4 p-2 bg-black/20 rounded-xl border border-white/5">
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] font-bold opacity-60">"If this input was sanitized..."</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black text-emerald-500">-35% RISK</span>
+                                                    <div className="w-8 h-4 bg-white/10 rounded-full relative cursor-pointer hover:bg-white/20 transition-colors">
+                                                        <div className="absolute left-1 top-1 bottom-1 w-2 bg-white/40 rounded-full" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Fix suggestion with copy button */}
                                     {s.fix && (

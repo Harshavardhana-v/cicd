@@ -44,6 +44,8 @@ interface UIState {
     toggleZoneC: () => void;
     currentSuggestions: any[];
     setSuggestions: (suggestions: any[]) => void;
+    isMacroView: boolean;
+    setMacroView: (enabled: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -94,4 +96,6 @@ export const useUIStore = create<UIState>((set) => ({
     toggleZoneC: () => set((state) => ({ isZoneCExpanded: !state.isZoneCExpanded })),
     currentSuggestions: [],
     setSuggestions: (suggestions) => set({ currentSuggestions: suggestions }),
+    isMacroView: false,
+    setMacroView: (enabled) => set({ isMacroView: enabled }),
 }));

@@ -147,9 +147,15 @@ body {
 .monaco-editor .view-lines,
 .monaco-editor .lines-content,
 .monaco-editor .scroll-decoration,
+.monaco-editor .margin,
+.monaco-editor .margin-view-overlays,
 .monaco-editor span {
   transition: none !important;
   animation: none !important;
+}
+
+.monaco-editor .view-line {
+  display: block !important;
+  opacity: 1 !important;
   transform: none !important;
-  backdrop-filter: none !important;
 }

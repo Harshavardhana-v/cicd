@@ -280,6 +280,7 @@ export default function PRDiffView() {
                                             fontFamily: 'monospace',
                                             fontLigatures: false,
                                             smoothScrolling: false,
+                                            cursorSmoothCaretAnimation: 'off',
                                             cursorBlinking: 'solid',
                                             scrollbar: {
                                                 useShadows: false,

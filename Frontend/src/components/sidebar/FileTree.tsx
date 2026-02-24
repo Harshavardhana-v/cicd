@@ -5,6 +5,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { FileCode, Folder, ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
 import { useUIStore } from '@/store/useStore';
+import { validatePath } from '@/lib/security';
 import { FileTreeSkeleton } from '../ui/Skeletons';
 
 function cn(...inputs: ClassValue[]) {
@@ -119,7 +120,7 @@ export default function FileTree() {
         const map: Record<string, FileNode> = {};
 
         files.forEach(file => {
-            if (!file.path) return;
+            if (!file.path || !validatePath(file.path)) return;
             const parts = file.path.split('/');
             let currentPath = '';
 

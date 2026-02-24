@@ -1,129 +1,169 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useUIStore } from '@/store/useStore';
-import { Terminal, Copy, ArrowRight, CornerDownLeft, Sparkles, ChevronLeft, Github } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import React, { useState } from "react";
+import { useUIStore } from "@/store/useStore";
+import {
+    Terminal,
+    ArrowRight,
+    CornerDownLeft,
+    Sparkles,
+    Github,
+} from "lucide-react";
 
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
-
-const SAMPLE_CODE = `function calculateTotal(items) {
-  let total = 0;
-  for (let i = 0; i < items.length; i++) {
-    // Potential vulnerability: unvalidated input access
-    total += items[i].price;
-  }
-  return total;
-}
-
-// Logic flaw: missing empty array check
-console.log(calculateTotal([]));`;
+const SAMPLE_CODE = `function calculateTotal(items){
+ let total = 0;
+ for(let i=0;i<items.length;i++){
+   total += items[i].price;
+ }
+ return total;
+}`;
 
 export default function SelectionView() {
     const { setView, setCodeToReview } = useUIStore();
-    const [inputCode, setInputCode] = useState('');
+    const [inputCode, setInputCode] = useState("");
 
     const handleStartReview = (code?: string) => {
         const finalCode = code || inputCode;
         if (finalCode.trim().length > 0) {
             setCodeToReview(finalCode);
-            setView('review');
+            setView("review");
         }
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center relative px-10">
-            <div className="w-full max-w-[1400px] space-y-12 relative z-10 animate-in fade-in duration-700">
+        <div className="min-h-screen w-full bg-[#050816] text-white flex items-center justify-center relative overflow-hidden">
 
-                <button
-                    onClick={() => setView('welcome')}
-                    className="flex items-center gap-2 text-sm opacity-50 hover:opacity-100 transition-opacity"
-                >
-                    <ChevronLeft className="w-4 h-4" /> Back to home
-                </button>
+            {/* ===== Animated Background Glow ===== */}
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute top-[-200px] left-[50%] -translate-x-1/2 w-[700px] h-[700px] bg-purple-600/20 blur-[180px] rounded-full animate-pulse" />
+                <div className="absolute bottom-[-200px] right-[10%] w-[500px] h-[500px] bg-indigo-600/20 blur-[160px] rounded-full animate-pulse" />
+            </div>
 
-                <div className="space-y-6 text-center">
-                    <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-tight">Choose your <span className="text-ai-accent italic underline decoration-ai-accent/30 underline-offset-8">entry point</span>.</h2>
-                    <p className="text-xl text-muted-foreground font-medium max-w-2xl mx-auto">Kickstart your code intelligence session via direct input or profile sync.</p>
-                </div>
+            {/* ===== MAIN CENTER CONTAINER ===== */}
+            <div className="relative z-10 w-full max-w-6xl px-6 text-center flex flex-col items-center">
 
-                <div className="grid md:grid-cols-2 gap-12 items-stretch">
-                    {/* Left: Direct Input */}
-                    <div className="flex flex-col space-y-6">
-                        <div className="relative group flex-1 flex flex-col">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-ai-accent via-indigo-500 to-ai-accent rounded-[40px] blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
-                            <div className="relative flex-1 flex flex-col bg-sidebar/50 backdrop-blur-3xl border border-white/10 rounded-[32px] overflow-hidden shadow-2xl">
-                                <div className="flex items-center justify-between px-8 py-5 bg-white/5 border-b border-white/5">
-                                    <span className="text-xs font-black uppercase tracking-[0.2em] opacity-60 flex items-center gap-2">
-                                        <Terminal className="w-4 h-4 text-ai-accent" /> Editor Terminal
-                                    </span>
-                                </div>
-                                <textarea
-                                    placeholder="Paste your source code here to start analysis..."
-                                    className="flex-1 w-full min-h-[450px] bg-transparent p-8 text-lg font-mono focus:outline-none resize-none placeholder:opacity-30 leading-relaxed scrollbar-hide"
-                                    value={inputCode}
-                                    onChange={(e) => setInputCode(e.target.value)}
-                                />
-                                <div className="p-8 border-t border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                    <div className="flex items-center gap-2 text-[10px] opacity-40 uppercase font-black tracking-widest hidden lg:flex">
-                                        <CornerDownLeft className="w-4 h-4" /> Press Cmd+Enter to launch
-                                    </div>
-                                    <button
-                                        disabled={!inputCode.trim()}
-                                        onClick={() => handleStartReview()}
-                                        className="px-10 py-4 bg-ai-accent hover:bg-ai-accent/90 disabled:opacity-20 text-white rounded-2xl font-black text-base transition-all hover:scale-105 active:scale-95 flex items-center gap-3 shadow-[0_10px_30px_rgba(139,92,246,0.3)]"
-                                    >
-                                        Launch Session <ArrowRight className="w-5 h-5" />
-                                    </button>
-                                </div>
+                {/* ===== TITLE ===== */}
+                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight mb-6">
+                    Choose your{" "}
+                    <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent animate-gradient">
+                        entry point
+                    </span>
+                </h1>
+
+                <p className="text-lg text-gray-400 mb-16 max-w-2xl">
+                    Kickstart your code intelligence session via direct input or GitHub sync.
+                </p>
+
+                {/* ===== CARDS GRID ===== */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 w-full">
+
+                    {/* ===== CODE EDITOR CARD ===== */}
+                    <div className="group relative bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-6 hover:border-purple-500/40 transition-all duration-500 shadow-xl">
+
+                        {/* glow hover */}
+                        <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition bg-purple-600/10 blur-2xl" />
+
+                        <div className="relative z-10 text-left">
+                            <div className="flex items-center gap-2 text-purple-400 font-semibold mb-4">
+                                <Terminal className="w-4 h-4" />
+                                Editor Terminal
+                            </div>
+
+                            <textarea
+                                placeholder="Paste source code..."
+                                className="w-full h-[220px] bg-[#020617] border border-white/10 rounded-xl p-4 font-mono text-sm text-gray-200 focus:outline-none focus:border-purple-500 resize-none"
+                                value={inputCode}
+                                onChange={(e) => setInputCode(e.target.value)}
+                            />
+
+                            <div className="flex justify-between items-center mt-4">
+                                <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <CornerDownLeft className="w-3 h-3" />
+                                    Cmd + Enter
+                                </span>
+
+                                <button
+                                    disabled={!inputCode.trim()}
+                                    onClick={() => handleStartReview()}
+                                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:scale-105 transition rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg"
+                                >
+                                    Launch <ArrowRight className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Right: Samples & Features */}
-                    <div className="flex flex-col space-y-8">
+                    {/* ===== RIGHT SIDE OPTIONS ===== */}
+                    <div className="flex flex-col gap-8">
+
+                        {/* Example code */}
                         <div
                             onClick={() => handleStartReview(SAMPLE_CODE)}
-                            className="p-10 rounded-[32px] bg-sidebar/30 border border-border border-dashed hover:border-ai-accent/50 hover:bg-ai-accent/5 transition-all cursor-pointer group flex flex-col justify-between min-h-[240px]"
+                            className="group relative bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-8 cursor-pointer hover:border-purple-500/40 transition-all duration-500 shadow-xl"
                         >
-                            <div>
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="p-3 rounded-2xl bg-ai-accent/10 text-ai-accent border border-ai-accent/20 shadow-inner">
-                                        <Sparkles className="w-6 h-6" />
-                                    </div>
-                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] bg-ai-accent/10 text-ai-accent px-3 py-1.5 rounded-full border border-ai-accent/20">Explorer Mode</span>
+                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-purple-600/10 blur-2xl rounded-3xl transition" />
+
+                            <div className="relative z-10 text-left">
+                                <div className="flex justify-between mb-4">
+                                    <Sparkles className="text-purple-400" />
+                                    <span className="text-xs text-purple-400 tracking-widest">
+                                        QUICK START
+                                    </span>
                                 </div>
-                                <h3 className="text-3xl font-black mb-3">Try Example Code</h3>
-                                <p className="text-lg text-muted-foreground font-medium italic opacity-70 leading-relaxed">"Quickly visualize how CodeSage flags vulnerabilities in real-world JavaScript snippets."</p>
-                            </div>
-                            <div className="text-base font-black text-ai-accent flex items-center gap-2 group-hover:gap-4 transition-all pt-6">
-                                Load Sample Snippet <ArrowRight className="w-5 h-5" />
+
+                                <h3 className="text-2xl font-bold mb-2">
+                                    Try Example Code
+                                </h3>
+
+                                <p className="text-gray-400 mb-6">
+                                    Visualize CodeSage intelligence on a real snippet.
+                                </p>
+
+                                <span className="text-purple-400 flex items-center gap-2">
+                                    Execute <ArrowRight className="w-4 h-4" />
+                                </span>
                             </div>
                         </div>
 
+                        {/* GitHub */}
                         <div
-                            onClick={() => setView('github')}
-                            className="p-10 rounded-[32px] bg-sidebar/50 border border-white/10 hover:border-ai-accent/50 hover:bg-ai-accent/5 transition-all cursor-pointer group flex flex-col justify-between min-h-[240px] shadow-xl"
+                            onClick={() => setView("github")}
+                            className="group relative bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-8 cursor-pointer hover:border-purple-500/40 transition-all duration-500 shadow-xl"
                         >
-                            <div>
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="p-3 rounded-2xl bg-ai-accent/10 text-ai-accent border border-ai-accent/20">
-                                        <Github className="w-6 h-6" />
-                                    </div>
-                                    <h3 className="text-3xl font-black tracking-tight">GitHub Sync</h3>
+                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-indigo-600/10 blur-2xl rounded-3xl transition" />
+
+                            <div className="relative z-10 text-left">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <Github className="text-purple-400" />
+                                    <h3 className="text-2xl font-bold">GitHub Sync</h3>
                                 </div>
-                                <p className="text-lg text-muted-foreground font-medium leading-relaxed opacity-70">Connect your cloud profiles to monitor live repositories and perform automated deep scans on every commit.</p>
-                            </div>
-                            <div className="text-base font-black text-ai-accent flex items-center gap-2 group-hover:gap-4 transition-all pt-6">
-                                Integrate Account <ArrowRight className="w-5 h-5" />
+
+                                <p className="text-gray-400 mb-6">
+                                    Connect repositories for deep AI scans and monitoring.
+                                </p>
+
+                                <span className="text-purple-400 flex items-center gap-2">
+                                    Sync Account <ArrowRight className="w-4 h-4" />
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* ===== gradient animation ===== */}
+            <style jsx>{`
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradientMove 5s ease infinite;
+        }
+
+        @keyframes gradientMove {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
         </div>
     );
 }

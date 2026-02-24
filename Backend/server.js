@@ -40,23 +40,41 @@ app.get('/api/github/metrics/:owner/:repo', async (req, res) => {
     }
 });
 
+// Helper for GitHub Headers
+const getHeaders = () => {
+    return process.env.GITHUB_TOKEN
+        ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+        : {};
+};
+
 // GitHub API Proxy for Recursive Tree (Real Code Structure)
 app.get('/api/github/tree/:owner/:repo', async (req, res) => {
     const { owner, repo } = req.params;
+    console.log(`[Tree] Requesting structure for ${owner}/${repo}`);
     try {
         // Get the default branch first
-        const repoInfo = await axios.get(`https://api.github.com/repos/${owner}/${repo}`);
+        const repoInfo = await axios.get(`https://api.github.com/repos/${owner}/${repo}`, { headers: getHeaders() });
         const defaultBranch = repoInfo.data.default_branch;
 
         // Get recursive tree
-        const treeResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`);
+        const treeResponse = await axios.get(
+            `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`,
+            { headers: getHeaders() }
+        );
 
+        // Filter out noise to keep frontend building fast
+        const EXCLUDE_PATHS = ['.git/', 'node_modules/', 'dist/', 'build/', '.next/', 'package-lock.json'];
+        const filteredTree = treeResponse.data.tree.filter(item =>
+            !EXCLUDE_PATHS.some(ex => item.path.includes(ex))
+        );
+
+        console.log(`[Tree] Success: ${filteredTree.length} nodes returned (filtered from ${treeResponse.data.tree.length})`);
         res.json({
             branch: defaultBranch,
-            tree: treeResponse.data.tree
+            tree: filteredTree
         });
     } catch (error) {
-        console.error('Error fetching tree:', error.message);
+        console.error(`[Tree] Error: ${error.message}`);
         res.status(500).json({ error: 'Failed to fetch repository structure' });
     }
 });
@@ -185,6 +203,10 @@ app.get('/api/github/pr-files/:owner/:repo/:prNumber', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+import { initSocket } from './socket.js';
+
+const server = app.listen(PORT, () => {
     console.log(`CodeSage Backend running on port ${PORT}`);
 });
+
+initSocket(server);
