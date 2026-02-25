@@ -46,6 +46,8 @@ interface UIState {
     setSuggestions: (suggestions: any[]) => void;
     isMacroView: boolean;
     setMacroView: (enabled: boolean) => void;
+    isCommandPaletteOpen: boolean;
+    setCommandPaletteOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -64,13 +66,17 @@ export const useUIStore = create<UIState>((set) => ({
     repoFiles: [],
     fileContents: {},
     isPrivacyMode: false,
-    activeReviewers: [],
+    activeReviewers: [
+        { id: '1', name: 'Alex Rivera', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex', color: '#8B5CF6' },
+        { id: '2', name: 'Sam Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sam', color: '#10B981' },
+        { id: '3', name: 'Jordan Taylor', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan', color: '#F59E0B' }
+    ],
     prsTimeline: [],
     codeToReview: '',
     setView: (view) => set({ view }),
     setFocusMode: (mode) => set({
         focusMode: mode,
-        isZoneCExpanded: mode === 'analysis' ? true : true // Keep panel open or customize
+        isZoneCExpanded: true // Keep panel open or customize
     }),
     setSelectedPR: (pr) => set({ selectedPR: pr }),
     setGraphData: (graphData) => set({ graphData }),
@@ -98,4 +104,6 @@ export const useUIStore = create<UIState>((set) => ({
     setSuggestions: (suggestions) => set({ currentSuggestions: suggestions }),
     isMacroView: false,
     setMacroView: (enabled) => set({ isMacroView: enabled }),
+    isCommandPaletteOpen: false,
+    setCommandPaletteOpen: (open) => set({ isCommandPaletteOpen: open }),
 }));

@@ -11,6 +11,8 @@ import { sanitizeAIContent } from '@/lib/security';
 import { sensory } from '@/lib/sensory';
 import { IntelligencePanelSkeleton } from '../ui/Skeletons';
 import ReviewTimeline from './ReviewTimeline';
+import VoiceFeedback from './VoiceFeedback';
+import { X } from 'lucide-react';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -26,6 +28,8 @@ export default function IntelligencePanel() {
     const [keyword, setKeyword] = useState('');
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [holdProgress, setHoldProgress] = useState<Record<string, number>>({});
+    const holdTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
     // ── Run analysis engine ────────────────────────────────────────
     useEffect(() => {
@@ -78,6 +82,34 @@ export default function IntelligencePanel() {
         });
     };
 
+    // ── Hold-to-Confirm Logic ────────────────────────────────────
+    const startHold = (id: string) => {
+        const interval = setInterval(() => {
+            setHoldProgress(prev => {
+                const current = prev[id] || 0;
+                if (current >= 100) {
+                    clearInterval(interval);
+                    dismissSuggestion(id);
+                    return { ...prev, [id]: 0 };
+                }
+                return { ...prev, [id]: current + 5 };
+            });
+        }, 50);
+        holdTimers.current[id] = interval;
+    };
+
+    const stopHold = (id: string) => {
+        if (holdTimers.current[id]) {
+            clearInterval(holdTimers.current[id]);
+            setHoldProgress(prev => ({ ...prev, [id]: 0 }));
+        }
+    };
+
+    const dismissSuggestion = (id: string) => {
+        setSuggestions(currentSuggestions.filter(s => s.id !== id));
+        sensory.playSuccessChime();
+    };
+
     // ── Filtered list ─────────────────────────────────────────────
     const filtered = currentSuggestions
         .filter(s => filter === 'all' || s.type === filter)
@@ -101,7 +133,7 @@ export default function IntelligencePanel() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                     <div className={cn(
                         "p-5 rounded-3xl border transition-all duration-500 flex flex-col gap-1",
                         securityRisks > 0 ? "bg-risk-critical/5 border-risk-critical/20" : "bg-white/[0.02] border-white/5"
@@ -131,7 +163,7 @@ export default function IntelligencePanel() {
             </div>
 
             {/* Engine Insights */}
-            <div className="p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="p-10 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
 
                 {/* Header + Filter Tabs */}
                 <div className="flex items-center justify-between">
@@ -205,8 +237,8 @@ export default function IntelligencePanel() {
                                 key={s.id}
                                 onMouseEnter={() => { if (s.type === 'security') sensory.triggerHapticPulse(15); }}
                                 className={cn(
-                                    "p-6 rounded-[32px] border transition-all hover:bg-white/[0.03] group relative overflow-hidden",
-                                    s.type === 'security' ? "border-risk-critical/10" : "border-ai-accent/10"
+                                    "p-8 rounded-[40px] border transition-all hover:bg-white/[0.04] group relative overflow-hidden shadow-sm hover:shadow-xl",
+                                    s.type === 'security' ? "border-risk-critical/10 bg-risk-critical/[0.01]" : "border-ai-accent/10 bg-ai-accent/[0.01]"
                                 )}
                             >
                                 <div className={cn(
@@ -232,6 +264,24 @@ export default function IntelligencePanel() {
                                                     {Math.round(s.confidence * 100)}%
                                                 </span>
                                             </div>
+
+                                            {/* Hold to Confirm Dismiss */}
+                                            <button
+                                                onMouseDown={() => startHold(s.id)}
+                                                onMouseUp={() => stopHold(s.id)}
+                                                onMouseLeave={() => stopHold(s.id)}
+                                                className="relative w-8 h-8 rounded-xl bg-white/5 hover:bg-risk-critical/10 flex items-center justify-center transition-all group/btn"
+                                                title="Hold to dismiss"
+                                            >
+                                                <div
+                                                    className="absolute inset-0 bg-risk-critical/20 rounded-xl origin-bottom transition-all duration-75"
+                                                    style={{ height: `${holdProgress[s.id] || 0}%` }}
+                                                />
+                                                <X className={cn(
+                                                    "w-3.5 h-3.5 transition-all text-white/20 group-hover/btn:text-risk-critical",
+                                                    (holdProgress[s.id] || 0) > 0 && "scale-90 text-risk-critical"
+                                                )} />
+                                            </button>
                                         </div>
                                     </div>
 
@@ -314,18 +364,25 @@ export default function IntelligencePanel() {
                 {/* Phase 5: Review Timeline */}
                 <ReviewTimeline />
 
+                {/* Phase 7: Voice Feedback */}
+                <div className="pt-4">
+                    <VoiceFeedback />
+                </div>
+
                 {/* PR Diff CTA */}
                 {selectedRepo && (
-                    <button
-                        onClick={() => setView('diff')}
-                        className="w-full flex items-center justify-between p-4 rounded-2xl bg-ai-accent/5 border border-ai-accent/20 hover:bg-ai-accent/10 transition-all group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <GitPullRequest className="w-4 h-4 text-ai-accent" />
-                            <span className="text-xs font-black uppercase tracking-widest text-ai-accent">Open PR Diff Viewer</span>
-                        </div>
-                        <span className="text-ai-accent opacity-40 group-hover:opacity-100 transition-opacity">→</span>
-                    </button>
+                    <div className="pt-4">
+                        <button
+                            onClick={() => setView('diff')}
+                            className="w-full flex items-center justify-between p-6 rounded-[32px] bg-ai-accent/5 border border-ai-accent/20 hover:bg-ai-accent/10 transition-all group"
+                        >
+                            <div className="flex items-center gap-4">
+                                <GitPullRequest className="w-5 h-5 text-ai-accent" />
+                                <span className="text-xs font-black uppercase tracking-[0.2em] text-ai-accent">Open PR Diff Viewer</span>
+                            </div>
+                            <span className="text-ai-accent opacity-40 group-hover:opacity-100 transition-opacity">→</span>
+                        </button>
+                    </div>
                 )}
             </div>
 

@@ -37,21 +37,28 @@ export default function GitHubView() {
     const [profileInput, setProfileInput] = useState("");
     const [isConnecting, setIsConnecting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isMockMode, setIsMockMode] = useState(false);
 
     const handleConnect = async () => {
         setIsConnecting(true);
         setError(null);
         try {
-            const username = profileInput
-                .replace("https://github.com/", "")
-                .replace("/", "");
+            // Robust username extraction
+            const urlMatch = profileInput.match(/(?:github\.com\/|@)([a-zA-Z0-9-]{1,39})(?:\/|$)/);
+            const username = urlMatch ? urlMatch[1] : profileInput.trim();
+
+            if (!username) throw new Error("Please enter a valid GitHub username or URL");
 
             const response = await fetch(
-                `https://api.github.com/users/${username}/repos?sort=updated&per_page=12`
+                `http://localhost:5000/api/github/user-repos/${username}`
             );
 
-            if (!response.ok) throw new Error("User not found or API limit reached");
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "User not found or API limit reached");
+            }
 
+            setIsMockMode(response.headers.get('X-Mock-Data') === 'true');
             const data = await response.json();
 
             const mappedRepos = data.map((repo: any) => ({
@@ -144,11 +151,35 @@ export default function GitHubView() {
                         {error && (
                             <p className="mt-5 text-red-500 text-sm font-semibold">{error}</p>
                         )}
+
+                        {!error && !githubProfile && (
+                            <p className="mt-5 text-green-500/60 text-[10px] font-black uppercase tracking-widest animate-pulse">
+                                Backend Online: Authenticated Sync Ready
+                            </p>
+                        )}
                     </div>
                 </div>
             ) : (
                 /* REPO SECTION (unchanged main structure but spacing improved) */
-                <div className="relative z-10 max-w-7xl mx-auto px-6 pt-24 pb-20">
+                <div className="relative z-10 max-w-7xl mx-auto px-6 pt-12 pb-20">
+                    {/* Mock Mode Warning */}
+                    {isMockMode && (
+                        <div className="mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <AlertCircle className="w-5 h-5 text-amber-500" />
+                                <div>
+                                    <p className="text-sm font-bold text-amber-500">Running in Demo Mode</p>
+                                    <p className="text-xs opacity-60">API rate limit reached. Showing simulated data for your profile.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setGithubProfile(""); setView("selection"); }}
+                                className="px-4 py-2 bg-amber-500 text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-400 transition"
+                            >
+                                Try Sync Again
+                            </button>
+                        </div>
+                    )}
                     {/* Profile Header */}
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 border-b border-white/10 pb-10">
                         <div className="flex items-center gap-6">

@@ -24,10 +24,10 @@ export default function ReviewTimeline() {
     if (!prsTimeline || prsTimeline.length === 0) return null;
 
     return (
-        <div className="space-y-6 pt-6 border-t border-white/5">
-            <div className="flex items-center justify-between px-2">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 flex items-center gap-3">
-                    <History className="w-3 h-3" /> Review Timeline
+        <div className="space-y-8 pt-10 border-t border-white/5">
+            <div className="flex items-center justify-between px-4">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/40 flex items-center gap-4">
+                    <History className="w-4 h-4" /> Review Timeline
                 </h3>
             </div>
 

@@ -140,10 +140,37 @@ export default function CommandPalette() {
 
     // ── Filtering ─────────────────────────────────────────────────
     const filtered = query.trim()
-        ? allCommands.filter(c =>
-            c.label.toLowerCase().includes(query.toLowerCase()) ||
-            (c.sublabel || '').toLowerCase().includes(query.toLowerCase())
-        )
+        ? (() => {
+            const lowQuery = query.toLowerCase();
+            let base = allCommands.filter(c =>
+                c.label.toLowerCase().includes(lowQuery) ||
+                (c.sublabel || '').toLowerCase().includes(lowQuery)
+            );
+
+            // Add intelligent overlays
+            if (lowQuery.includes('security') || lowQuery.includes('vulnerab') || lowQuery.includes('risk')) {
+                base.unshift({
+                    id: 'smart-security',
+                    group: '💫 Smart Action',
+                    icon: <Shield className="w-4 h-4 text-risk-critical animate-pulse" />,
+                    label: 'Run Deep Security Audit',
+                    sublabel: 'Force re-scan current buffer for high-risk patterns',
+                    action: () => window.dispatchEvent(new CustomEvent('codesage:filter', { detail: 'security' })),
+                });
+            }
+            if (lowQuery.includes('optimize') || lowQuery.includes('perf') || lowQuery.includes('fast')) {
+                base.unshift({
+                    id: 'smart-opt',
+                    group: '💫 Smart Action',
+                    icon: <Zap className="w-4 h-4 text-emerald-400 animate-bounce" />,
+                    label: 'Analyze Performance Bottlenecks',
+                    sublabel: 'Identify unoptimized loops and memory leaks',
+                    action: () => window.dispatchEvent(new CustomEvent('codesage:filter', { detail: 'optimization' })),
+                });
+            }
+
+            return base;
+        })()
         : staticCommands; // Only show static when no query typed
 
     // Group results

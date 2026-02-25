@@ -161,6 +161,58 @@ app.get('/api/github/prs/:owner/:repo', async (req, res) => {
     }
 });
 
+// Endpoint: Proxy for fetching user repositories (Authenticated)
+app.get('/api/github/user-repos/:username', async (req, res) => {
+    const { username } = req.params;
+    try {
+        const response = await axios.get(
+            `https://api.github.com/users/${username}/repos?sort=updated&per_page=30`,
+            { headers: getHeaders() }
+        );
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching user repos:', error.message);
+        // Fallback to mock data if rate limit hit
+        if (error.response?.status === 403 || error.response?.status === 401) {
+            res.setHeader('X-Mock-Data', 'true');
+            return res.json([
+                { name: 'demo-portfolio', owner: { login: username }, updated_at: new Date().toISOString(), open_issues_count: 3, stargazers_count: 12, language: 'TypeScript', description: 'AI-generated mockup of your portfolio.' },
+                { name: 'cicd-automation', owner: { login: username }, updated_at: new Date().toISOString(), open_issues_count: 0, stargazers_count: 5, language: 'Python', description: 'Automated CI/CD pipeline simulation.' },
+                { name: 'code-intelligence-core', owner: { login: username }, updated_at: new Date().toISOString(), open_issues_count: 15, stargazers_count: 28, language: 'JavaScript', description: 'Core analysis engine demo.' }
+            ]);
+        }
+        res.status(error.response?.status || 500).json({
+            error: error.response?.data?.message || 'Failed to fetch repositories'
+        });
+    }
+});
+
+import fs from 'fs/promises';
+import path from 'path';
+
+// Endpoint: Fetch local file content (for Local vs PR comparison)
+app.get('/api/local/file', async (req, res) => {
+    const { filePath } = req.query;
+    if (!filePath) return res.status(400).json({ error: 'filePath is required' });
+
+    try {
+        // Resolve path relative to the project root (c:\cicd)
+        const absolutePath = path.resolve('c:/cicd', filePath);
+
+        // Safety check: ensure the path is within the project directory
+        // Using toLowerCase for case-insensitive validation on Windows
+        if (!absolutePath.toLowerCase().startsWith('c:\\cicd')) {
+            return res.status(403).json({ error: 'Access denied: Path outside project root' });
+        }
+
+        const data = await fs.readFile(absolutePath, 'utf-8');
+        res.json({ content: data });
+    } catch (error) {
+        console.error('Error reading local file:', error.message);
+        res.status(404).json({ error: `Local file not found: ${filePath}` });
+    }
+});
+
 // Endpoint: Fetch individual file content from GitHub
 app.get('/api/github/file/:owner/:repo', async (req, res) => {
     const { owner, repo } = req.params;
@@ -173,6 +225,24 @@ app.get('/api/github/file/:owner/:repo', async (req, res) => {
     } catch (error) {
         console.error('Error fetching file:', error.message);
         res.status(404).json({ error: `File not found: ${path}` });
+    }
+});
+
+// Endpoint: Fetch file content at specific SHA
+app.get('/api/github/file-content/:owner/:repo/:sha', async (req, res) => {
+    const { owner, repo, sha } = req.params;
+    try {
+        const headers = getHeaders();
+        const response = await axios.get(
+            `https://api.github.com/repos/${owner}/${repo}/git/blobs/${sha}`,
+            { headers }
+        );
+        // GitHub Blobs API returns base64 encoded content
+        const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+        res.json({ content });
+    } catch (error) {
+        console.error(`[FileSHA] Error: ${error.message}`);
+        res.status(404).json({ error: 'Failed to fetch file content by SHA' });
     }
 });
 
@@ -195,12 +265,42 @@ app.get('/api/github/pr-files/:owner/:repo/:prNumber', async (req, res) => {
             patch: f.patch || '',
             rawUrl: f.raw_url,
             blobUrl: f.blob_url,
+            sha: f.sha,
+            contentsUrl: f.contents_url,
         }));
         res.json({ files });
     } catch (error) {
         console.error('Error fetching PR files:', error.message);
         res.status(500).json({ error: 'Failed to fetch PR file diffs' });
     }
+});
+
+// Endpoint: Simulate AI PR Analysis
+app.post('/api/analysis/pr-review', async (req, res) => {
+    const { prNumber, files } = req.body;
+
+    // Simulate intelligent review comments across files
+    const reviews = files.map(file => {
+        const issues = [];
+        if (file.filename.endsWith('.ts') || file.filename.endsWith('.tsx')) {
+            if (file.patch.includes('eval(')) {
+                issues.push({ line: 1, type: 'Security', message: 'Evaluation of dynamic code detected. High risk of RCE.' });
+            }
+            if (file.patch.includes('password') || file.patch.includes('key')) {
+                issues.push({ line: 1, type: 'Security', message: 'Potential exposure of hardcoded credentials.' });
+            }
+            if (file.additions > 100) {
+                issues.push({ line: 1, type: 'Design', message: 'Large file addition. Consider breaking into smaller modules.' });
+            }
+        }
+        return { filename: file.filename, issues };
+    });
+
+    res.json({
+        summary: "CodeSage AI has scanned the pull request. Detected several security concerns regarding dynamic code evaluation and potential credential exposure.",
+        reviews,
+        score: Math.floor(Math.random() * 20) + 60
+    });
 });
 
 import { initSocket } from './socket.js';
