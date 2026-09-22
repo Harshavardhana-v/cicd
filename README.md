@@ -14,7 +14,7 @@ It's built as a **demo / proof-of-concept**, not a production tool: the "AI" rev
 - **Code structure visualization** — a lightweight parser extracts imports/functions/classes from a file and renders them as a dependency graph (D3 / React Flow).
 - **Real-time presence** — Socket.IO broadcasts who's viewing a repo and live cursor positions, for a shared-review feel.
 
----
+
 
 ## Tech Stack
 
